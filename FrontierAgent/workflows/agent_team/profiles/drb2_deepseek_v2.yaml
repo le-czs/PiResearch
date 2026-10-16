@@ -1,0 +1,47 @@
+# DRB2 quality profile: plan, two research passes, then an independent report.
+llm:
+  provider: openai
+  model: ${OPENAI_MODEL}
+  base_url: ${OPENAI_BASE_URL}
+  api_key: ${OPENAI_API_KEY}
+  temperature: 0.3
+  extra_body:
+    thinking:
+      type: disabled
+  max_tokens: ${OPENAI_MAX_TOKENS:-32768}
+
+report_llm:
+  provider: openai
+  model: ${OPENAI_MODEL}
+  base_url: ${OPENAI_BASE_URL}
+  api_key: ${OPENAI_API_KEY}
+  temperature: 0.2
+  extra_body:
+    reasoning_effort: ${DRB2_REPORT_REASONING_EFFORT:-high}
+  max_tokens: ${OPENAI_MAX_TOKENS:-32768}
+  llm_timeout_s: 600
+
+agent:
+  reporter: true
+  reporter_backend: fast
+  main_max_turns: ${DRB2_MAIN_MAX_TURNS:-100}
+  sub_max_turns: ${DRB2_SUB_MAX_TURNS:-60}
+  tool_timeout_s: 360
+  llm_timeout_s: 600
+  logical_call_timeout_s: 900
+  reasoning_only_timeout_s: 120
+  reasoning_only_max_tokens: 16384
+  thinking_format: none
+  thinking_in_history: false
+  context_compaction: tiered
+  compaction_spill: false
+  max_len: ${OPENAI_CONTEXT_WINDOW:-131072}
+  tier1_keep_tool_result: 8
+  keep_recent_turns: 8
+  max_input_tokens: ${OPENAI_MAX_INPUT_TOKENS:-98304}
+  team_effort: max
+  planning_mode: true
+  web_search_impl: original
+  web_fetch_impl: aligned
+  main_agent_tools: [create_subagent, assign_task, collect_reports, stop_subagent, add_task, update_task, update_constellation, finish_planning, grep_search, glob_search, web_search]
+  sub_agent_tools: [web_search, web_fetch, submit_report, bash, download_file, grep_search, glob_search, read_file, create_file, recover_result]

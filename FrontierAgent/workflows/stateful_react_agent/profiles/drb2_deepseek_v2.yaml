@@ -1,0 +1,30 @@
+# Fast DRB2 profile: single agent, same submission contract as the team path.
+llm:
+  model: ${OPENAI_MODEL}
+  api_key: ${OPENAI_API_KEY}
+  base_url: ${OPENAI_BASE_URL}
+  temperature: 0.3
+  extra_body:
+    thinking:
+      type: disabled
+  max_tokens: ${OPENAI_MAX_TOKENS:-32768}
+
+agent:
+  main_max_turns: ${DRB2_MAIN_MAX_TURNS:-140}
+  tool_timeout_s: 900
+  llm_timeout_s: 600
+  logical_call_timeout_s: 900
+  reasoning_only_timeout_s: 120
+  reasoning_only_max_tokens: 16384
+  thinking_format: none
+  thinking_in_history: false
+  keep_last_k: 8
+  context_compaction: tiered
+  compaction_spill: false
+  max_len: ${OPENAI_CONTEXT_WINDOW:-131072}
+  tier1_keep_tool_result: 8
+  keep_recent_turns: 8
+  max_input_tokens: ${OPENAI_MAX_INPUT_TOKENS:-98304}
+  agent_tools: [web_search, web_fetch, bash, download_file, grep_search, glob_search, recover_result]
+  web_search_impl: original
+  web_fetch_impl: original

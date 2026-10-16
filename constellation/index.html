@@ -1,0 +1,1972 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PiResearch</title>
+<script>
+try{
+  if(sessionStorage.getItem("piresearch-zoom") === "1"){
+    sessionStorage.removeItem("piresearch-zoom");
+    document.documentElement.classList.add("from-thumb");
+  }
+}catch(err){}
+</script>
+<style>
+:root{--bg:#000;--text:#f4f4f5;--muted:#8a8a8a;--cyan:#48d3e4;--blue:#6d9cff;--green:#58d69a;--amber:#f4c56a;--violet:#aa8cff;--line:#242424;--sans:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,monospace}
+*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#000;color:var(--text);font-family:var(--sans)}
+button{font:inherit;cursor:pointer}
+.app{height:100vh;display:grid;grid-template-rows:68px 1fr}
+html.from-thumb .app{animation:become-real .62s cubic-bezier(.16,1,.3,1)}
+@keyframes become-real{from{opacity:.84;filter:blur(16px);transform:scale(1.012)}to{opacity:1;filter:blur(0);transform:none}}
+::selection{background:#2c2c2c;color:#fff}
+.top{display:flex;align-items:center;gap:0;height:68px;padding:0 22px;border-bottom:1px solid #141414;background:#000}
+a.brand{flex:none;display:flex;align-items:center;height:68px;color:#f4f4f5;text-decoration:none;font-family:"Savoye LET","Snell Roundhand","Segoe Script","Bradley Hand",cursive;font-size:32px;font-weight:400;line-height:1;transform:translateY(6px)}
+a.brand:hover{color:#fff}
+#open-report{margin-left:auto;border:0;border-radius:999px;background:#f4f4f5;color:#111;padding:7px 16px;font-size:13px;font-weight:560;letter-spacing:.04em;box-shadow:0 10px 24px rgba(0,0,0,.4)}
+#open-report:hover{background:#fff;color:#000}
+#open-report:focus-visible{outline:2px solid #fff;outline-offset:3px}
+#goal-text{flex:1;min-width:0;margin:0 0 0 48px;font-family:"Kaiti SC","STKaiti","Songti SC","STSong",serif;font-size:18px;font-weight:500;letter-spacing:.03em;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.workspace{position:relative;display:grid;grid-template-columns:1fr;min-height:0}
+.app.has-selection .workspace{grid-template-columns:1fr 360px}
+.canvas{position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 40%,#121212 0%,#050505 54%,#000 100%);cursor:grab;touch-action:none}
+.canvas.panning{cursor:grabbing}
+.sky{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.sky::before,.sky::after{content:"";position:absolute;border-radius:50%;filter:blur(28px)}
+.sky::before{width:62%;height:52%;right:-10%;top:-12%;background:radial-gradient(ellipse at center,rgba(186,186,196,.13),rgba(70,70,78,.04) 46%,transparent 72%)}
+.sky::after{width:46%;height:40%;left:-10%;bottom:-12%;background:radial-gradient(ellipse at center,rgba(96,90,112,.09),transparent 70%)}
+.sky i{position:absolute;border-radius:50%;background:#d6d6da}
+.world{position:absolute;left:0;top:0;z-index:1;transform-origin:0 0}
+svg.edges{position:absolute;overflow:visible;pointer-events:none}
+.edge{fill:none;stroke-width:1.15;opacity:.64}
+.edge.parent{stroke:var(--blue)}
+.edge.audit{stroke:var(--violet);stroke-dasharray:2 6}
+.edge.support{stroke:var(--green)}
+.edge.challenge{stroke:var(--amber);stroke-dasharray:6 6}
+.edge.error{stroke:#ff5d6c;stroke-dasharray:2 7}
+.edge.focus-trace{stroke-width:2.6;stroke-dasharray:1;stroke-dashoffset:1;opacity:0;filter:drop-shadow(0 0 4px currentColor);animation:relation-trace .62s ease-out both}
+@keyframes relation-trace{0%{stroke-dashoffset:1;opacity:0}14%{opacity:.95}72%{stroke-dashoffset:0;opacity:.95}100%{stroke-dashoffset:0;opacity:0}}
+.edge-label{fill:#9db3c3;font:500 10px var(--sans);paint-order:stroke;stroke:#050505;stroke-width:4px}
+button.node{appearance:none;color:#e8edf1}
+.node{position:absolute;isolation:isolate;border-radius:50%;display:flex;align-items:center;justify-content:center;text-align:center;padding:0;cursor:pointer;border:1px solid color-mix(in srgb,var(--ring,#8ea0b3) 65%,#14303e);background:linear-gradient(145deg,color-mix(in srgb,var(--surface-light,#345888) 62%,#0a1821),var(--surface-dark,#101d33));box-shadow:0 8px 20px #0005;transition:box-shadow .2s ease,color .2s ease,border-color .2s ease}
+.node.tone-origin{--surface-light:#205c72;--surface-mid:#113a4b;--surface-dark:#091d28}
+.node.tone-green{--surface-light:#25664b;--surface-mid:#153e2e;--surface-dark:#0b2119}
+.node.tone-cyan{--surface-light:#205f70;--surface-mid:#123b48;--surface-dark:#0a2029}
+.node.tone-violet{--surface-light:#51407e;--surface-mid:#2d234c;--surface-dark:#18132b}
+.node.tone-amber{--surface-light:#6d5426;--surface-mid:#493718;--surface-dark:#251d0e}
+.node.tone-blue{--surface-light:#345888;--surface-mid:#1c3456;--surface-dark:#101d33}
+.node.tone-teal{--surface-light:#266252;--surface-mid:#173e36;--surface-dark:#0c211e}
+.node.tone-pending{--surface-light:#384756;--surface-mid:#222d38;--surface-dark:#121b23}
+.node::before{content:"";position:absolute;inset:8px;border:1px solid color-mix(in srgb,var(--ring,#8ea0b3) 24%,transparent);border-radius:inherit;pointer-events:none;opacity:0}
+.node::after{content:"";position:absolute;inset:0;border:1px solid var(--ring,#8ea0b3);border-radius:inherit;mask-image:linear-gradient(145deg,#000,transparent 48%);-webkit-mask-image:linear-gradient(145deg,#000,transparent 48%);opacity:.55;pointer-events:none}
+.node-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:9px;width:76%;min-width:0;pointer-events:none}
+.node-kicker{display:block;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:color-mix(in srgb,var(--ring,#8ea0b3) 62%,#e2eef4);font:600 9px/1.3 var(--sans);letter-spacing:.1em}
+.node .node-title{margin:0;font-size:var(--node-font,12px);font-weight:620;line-height:1.4;max-width:100%;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;word-break:normal;text-wrap:balance}
+.node-summary{display:block;margin:0;color:color-mix(in srgb,var(--ring,#8ea0b3) 23%,#d1e0e8);font-size:11px;line-height:1.5}
+.node-meta{display:flex;align-items:center;justify-content:center;gap:5px;max-width:100%;color:color-mix(in srgb,var(--ring,#8ea0b3) 48%,#cfdee7);font:500 10px/1.4 var(--sans);font-variant-numeric:tabular-nums}
+.node-meta::before{content:"";flex:none;width:3px;height:3px;border-radius:50%;background:var(--ring,#8ea0b3)}
+.node-tab{position:absolute;right:4%;top:10%;z-index:4;padding:4px 7px;border:1px solid color-mix(in srgb,var(--ring,#8ea0b3) 48%,#20313a);border-radius:5px;background:color-mix(in srgb,var(--surface-dark,#101d33) 82%,#07131b);color:color-mix(in srgb,var(--ring,#8ea0b3) 58%,#e8f1f5);font:600 9px/1.2 var(--sans);letter-spacing:.025em;pointer-events:none}
+.node-id{position:absolute;right:2%;bottom:4%;z-index:4;display:grid;place-items:center;min-width:23px;height:23px;max-width:54px;padding:0 4px;border:1px solid color-mix(in srgb,var(--ring,#8ea0b3) 40%,#243b48);border-radius:50%;background:#10212c;color:#d8e9f2;font:600 9px/1 var(--mono);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;pointer-events:none}
+.node.compact .node-content{width:74%}
+.node.compact .node-title{-webkit-line-clamp:3;font-weight:580;line-height:1.35}
+.node.compact .node-kicker,.node.compact .node-meta,.node.compact .node-tab{display:none}
+.node.weight-hub::before{opacity:1}
+.node.weight-origin{border-color:color-mix(in srgb,var(--ring) 76%,#24434a);background:linear-gradient(145deg,color-mix(in srgb,var(--ring) 22%,#0c2027),#0a1c24);box-shadow:0 12px 30px #0005}
+.node.weight-origin::before{inset:12px;opacity:1;border-color:color-mix(in srgb,var(--ring) 36%,transparent)}
+.node.weight-origin::after{inset:-12px;mask-image:none;-webkit-mask-image:none;border-color:color-mix(in srgb,var(--ring) 20%,transparent);opacity:1;box-shadow:0 0 0 10px color-mix(in srgb,var(--ring) 4%,transparent)}
+.node.weight-origin .node-content{width:73%;gap:12px}
+.node.weight-origin .node-title{font-weight:650;line-height:1.4;color:#f1f5f7}
+.node.weight-origin .node-tab{right:3%;top:13%}
+.node:hover{color:#fff;border-color:var(--ring);box-shadow:0 12px 28px #0007}
+.node:hover::after{opacity:.9}
+.node:focus-visible{outline:2px solid #dcebf2;outline-offset:5px}
+.node.arrive{animation:node-in .5s ease both}
+@keyframes node-in{from{opacity:0;filter:blur(5px)}to{opacity:1;filter:none}}
+.node.tone-arrive{animation:tone-flash .8s ease}
+@keyframes tone-flash{0%{filter:brightness(1.85)}45%{filter:brightness(1.35)}100%{filter:none}}
+.node .pip{position:absolute;right:14%;bottom:16%;z-index:2;width:7px;height:7px;border-radius:50%;border:1px solid #0a1015}
+.node .pip.resolved{background:#58d69a}
+.node .pip.in_progress{background:#7edbe5;box-shadow:0 0 5px #48d3e466}
+.node .pip.open{background:#6d9cff}
+.node .pip.cancelled{background:#ff7d85}
+.node.compact .pip{left:calc(50% - 3.5px);right:auto;bottom:12%}
+.node.cancelled{opacity:.55}
+.node.erroneous::after{border-style:dashed;border-color:#ff5d6c;mask-image:none;-webkit-mask-image:none;opacity:.8}
+.node.erroneous .node-tab{border-color:#a95465;color:#ffc2cc}
+.node.dim{opacity:.26;filter:grayscale(.2)}
+.node.selected{outline:1px solid color-mix(in srgb,var(--ring,#48d3e4) 58%,transparent);outline-offset:17px;box-shadow:0 12px 28px #0007}
+.node.selected::after{opacity:1}
+.node.selected.focus-in{animation:node-focus-in .34s cubic-bezier(.16,1,.3,1) both}
+.node.dim.focus-away{animation:node-focus-away .26s ease-out both}
+@keyframes node-focus-in{0%{transform:scale(.92);filter:brightness(1.55)}62%{transform:scale(1.035)}100%{transform:scale(1);filter:brightness(1)}}
+@keyframes node-focus-away{from{opacity:1;filter:grayscale(0)}to{opacity:.26;filter:grayscale(.2)}}
+.node .halo{position:absolute;overflow:visible;pointer-events:none;z-index:2}
+.node .halo .track{fill:none;stroke:#ffffff0a;stroke-width:1.4}
+.node .halo .arc{fill:none;stroke:var(--ring,#8ea0b3);stroke-width:1.4;stroke-linecap:round;opacity:.8;filter:drop-shadow(0 0 2px var(--glow,#48d3e455))}
+.node[data-status="resolved"] .halo .arc{opacity:.55;filter:none}
+.node.selected .halo .arc{opacity:.9}
+.node.in_progress .halo .arc,.node.working .halo .arc{animation:halo-breathe 1.8s ease-in-out infinite}
+@keyframes halo-breathe{50%{opacity:1;filter:drop-shadow(0 0 4px var(--glow,#48d3e4))}}
+.node.pending .halo{transform-origin:center;animation:halo-spin 2.6s linear infinite}
+@keyframes halo-spin{to{transform:rotate(360deg)}}
+.tone-origin{--ring:#48d3e4;--glow:#48d3e444}.tone-green{--ring:#58d69a;--glow:#58d69a44}.tone-cyan{--ring:#48d3e4;--glow:#48d3e444}.tone-violet{--ring:#aa8cff;--glow:#aa8cff44}.tone-amber{--ring:#f4c56a;--glow:#f4c56a44}.tone-blue{--ring:#6d9cff;--glow:#6d9cff44}.tone-teal{--ring:#7ddec8;--glow:#7ddec844}.tone-pending{--ring:#9eb0c2;--glow:#9eb0c244}
+button.satellite{appearance:none;position:absolute;z-index:5;display:flex;align-items:center;justify-content:flex-start;color:#e8f0f5;background:#0b1b26;border:1px solid color-mix(in srgb,var(--mark,#9ec9d6) 48%,#203847);font-weight:500;letter-spacing:0;line-height:1;white-space:nowrap;overflow:hidden}
+button.satellite span{overflow:hidden;text-overflow:ellipsis}
+button.satellite .act{color:var(--mark,#9ec9d6);font-weight:650}
+button.satellite .mark{flex:none;border-radius:50%;background:var(--mark,#9ec9d6)}
+button.satellite em{flex:none;color:#8a8a8a;font-family:var(--mono);font-style:normal;font-weight:500}
+button.satellite.tool-web_search{--mark:#48d3e4}
+button.satellite.tool-web_fetch{--mark:#6d9cff}
+button.satellite.tool-bash{--mark:#8ea0b3}
+button.satellite.tool-read_file{--mark:#aa8cff}
+button.satellite.tool-create_file{--mark:#58d69a}
+button.satellite.tool-submit_report{--mark:#f4c56a}
+button.satellite.tool-压缩{--mark:#7ddec8}
+button.satellite.tool-思考{--mark:#48d3e4}
+button.satellite.live .mark{animation:live-pulse 1.4s ease-in-out infinite}
+@keyframes live-pulse{0%,100%{opacity:1}50%{opacity:.35}}
+button.satellite.on,button.satellite:hover{background:#122b39;border-color:var(--mark,#9ec9d6)}
+button.satellite.bad{--mark:#ff7d85}
+button.satellite.enter{animation:chip-in .28s cubic-bezier(.2,.8,.2,1) both}
+button.satellite.burst{animation:chip-out .34s cubic-bezier(.16,.8,.28,1) both}
+@keyframes chip-in{from{opacity:0;filter:blur(3px)}to{opacity:1;filter:none}}
+@keyframes chip-out{
+  0%{opacity:0;transform:translate(var(--from-x),var(--from-y)) scale(.28)}
+  32%{opacity:1}
+  100%{opacity:1;transform:translate(0,0) scale(1)}
+}
+button.satellite.retreat{animation:chip-back .34s cubic-bezier(.16,.8,.28,1) forwards;pointer-events:none}
+@keyframes chip-back{
+  0%{opacity:1;transform:none}
+  68%{opacity:1}
+  100%{opacity:0;transform:translate(var(--from-x),var(--from-y)) scale(.28)}
+}
+.spoke{fill:none;stroke-width:1.1;opacity:.42}
+.spoke.burst{animation:spoke-in .34s ease both}
+.chip-tip{position:fixed;z-index:40;width:max-content;max-width:min(300px,calc(100vw - 32px));padding:11px 13px 12px;border-radius:14px;background:rgba(10,10,10,.9);backdrop-filter:blur(18px) saturate(1.2);-webkit-backdrop-filter:blur(18px) saturate(1.2);box-shadow:0 18px 40px rgba(0,0,0,.5);color:#f4f4f5;font-size:13px;font-weight:450;line-height:1.55;pointer-events:none;visibility:hidden;opacity:0;transform:translateY(6px);transition:opacity .16s ease,transform .16s ease,visibility .16s}
+.chip-tip.show{visibility:visible;opacity:1;transform:none}
+.chip-tip b{display:flex;align-items:center;gap:6px;margin:0 0 5px;color:var(--mark,#48d3e4);font-size:11px;font-weight:650;letter-spacing:.04em;line-height:1}
+.chip-tip b::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.chip-tip span{display:block}
+.spoke.retreat{animation:spoke-out .34s ease forwards}
+@keyframes spoke-in{from{opacity:0}to{opacity:.42}}
+@keyframes spoke-out{to{opacity:0}}
+.live-layer{z-index:2;pointer-events:none}
+.live-layer .satellite{pointer-events:auto}
+.live-layer svg{overflow:visible;pointer-events:none}
+.edge.dim{opacity:.07}
+.edge-label.dim{opacity:.05}
+.legend{position:absolute;left:16px;bottom:16px;z-index:4;display:flex;gap:10px;flex-wrap:wrap;padding:8px 12px;border:0;border-radius:14px;background:rgba(10,10,10,.72);backdrop-filter:blur(16px) saturate(1.15);-webkit-backdrop-filter:blur(16px) saturate(1.15);box-shadow:0 14px 32px rgba(0,0,0,.42)}
+.legend span{display:flex;align-items:center;gap:7px;color:#c8c8c8;font-size:11px;letter-spacing:.02em}
+.swatch{width:22px;height:2px;background:var(--blue)}
+.swatch.audit{background:repeating-linear-gradient(90deg,var(--violet) 0 3px,transparent 3px 7px)}
+.swatch.support{background:var(--green)}
+.swatch.challenge{background:repeating-linear-gradient(90deg,var(--amber) 0 5px,transparent 5px 9px)}
+.swatch.error{background:repeating-linear-gradient(90deg,#ff5d6c 0 3px,transparent 3px 7px)}
+.zoom{position:absolute;right:16px;bottom:16px;z-index:4;display:flex;align-items:center;gap:6px;max-width:calc(100% - 32px);padding:5px;border:1px solid #ffffff14;border-radius:14px;background:linear-gradient(180deg,#1c1c1ce8,#101010ed);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 10px 28px #0007,inset 0 1px 0 #ffffff08}
+.zoom-scale{display:flex;align-items:center;gap:1px}
+.zoom button{display:flex;align-items:center;justify-content:center;flex:none;width:32px;height:32px;padding:0;border:0;border-radius:9px;background:transparent;color:#cdd2d6;transition:background .16s ease,color .16s ease,transform .12s ease}
+.zoom svg{display:block;width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.zoom output{display:block;min-width:40px;text-align:center;color:#aeb7bd;font:500 11px/1 var(--mono);font-variant-numeric:tabular-nums;user-select:none}
+.zoom-divider{flex:none;width:1px;height:18px;background:#ffffff14}
+.zoom button.zoom-home{width:auto;gap:8px;padding:0 11px 0 9px;color:#dce1e5;font-size:12px;font-weight:550;line-height:1;white-space:nowrap}
+.zoom-home svg{color:#a3bcc4;transition:color .16s ease}
+.zoom button:hover{color:#fff;background:#ffffff0e}
+.zoom button.zoom-home:hover svg{color:#7ee0ef}
+.zoom button:active{transform:scale(.94);background:#ffffff18}
+.zoom button:focus-visible{outline:2px solid #b7dae2;outline-offset:1px}
+@media(max-width:600px){.legend{left:12px;right:12px;bottom:72px;width:fit-content}.zoom{right:12px;bottom:16px}}
+@media(pointer:coarse){.zoom button{width:40px;height:40px}.zoom button.zoom-home{width:auto}}
+@media(prefers-reduced-motion:reduce){.zoom button,.zoom-home svg{transition:none}.zoom button:active{transform:none}}
+.empty{position:absolute;inset:0;display:grid;place-items:center;padding:40px;text-align:center;color:#8a8a8a}
+.empty[hidden]{display:none !important}
+.empty b{display:block;margin-bottom:8px;font-size:16px}
+.drawer{position:relative;display:none;border-left:1px solid #161616;background:#070707;grid-template-rows:auto 1fr;min-height:0}
+.app.has-selection .drawer{display:grid}
+.drawer.focus-in{animation:drawer-focus-in .38s cubic-bezier(.16,1,.3,1) both}
+.drawer.focus-in::before{content:"";position:absolute;z-index:2;left:0;top:var(--focus-y,50%);width:2px;height:68px;transform:translateY(-50%);pointer-events:none;background:linear-gradient(transparent,#6d9cff,transparent);box-shadow:0 0 14px #6d9cff66;animation:drawer-beacon .5s ease-out both}
+.drawer.focus-in .drawer-head,.drawer.focus-in .drawer-body{animation:drawer-content-in .32s .06s ease-out both}
+@keyframes drawer-focus-in{from{opacity:.55;transform:translate(22px,var(--drawer-dy,0px))}to{opacity:1;transform:none}}
+@keyframes drawer-beacon{0%{opacity:0;transform:translateY(-50%) scaleY(.25)}35%{opacity:1}100%{opacity:0;transform:translateY(-50%) scaleY(1)}}
+@keyframes drawer-content-in{from{opacity:.35;transform:translateY(7px)}to{opacity:1;transform:none}}
+.drawer-head{padding:22px 22px 18px;border-bottom:1px solid #161616}
+#back-goal{display:flex;align-items:center;gap:6px;width:fit-content;margin:0 0 14px;padding:0;border:0;background:transparent;color:#5ce1ff;font-size:13px;font-weight:650;line-height:1}
+#back-goal svg{display:block;width:14px;height:14px}
+#back-goal:hover{color:#d8f7ff}
+#back-goal:focus-visible{outline:2px solid #5ce1ff;outline-offset:3px;border-radius:4px}
+#back-goal[hidden]{display:none}
+.drawer-head .kind{display:block;margin:0 0 8px;font-size:13px;font-weight:650;letter-spacing:.04em}
+.drawer-head .kind[hidden]{display:none}
+.drawer-head h2{margin:0;font-family:"Kaiti SC","STKaiti","Songti SC","STSong",serif;font-size:22px;font-weight:500;letter-spacing:.03em;line-height:1.35}
+.drawer-head p{margin:8px 0 0;color:#9a9a9a;font-size:12px;line-height:1.4}
+#agents[hidden]{display:none}
+.drawer-body{overflow:auto;padding:18px 22px 32px;scrollbar-color:#3a3a3a transparent}
+.drawer-body::-webkit-scrollbar{width:8px}
+.drawer-body::-webkit-scrollbar-thumb{background:#3a3a3a;border-radius:99px}
+.section{margin:0 0 22px}
+.section h3{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:13px;font-weight:650;letter-spacing:.06em}
+.section h3::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+#status-section h3{color:#4ade80}
+#notes-section h3{color:#facc15}
+#children-section h3{color:#c084fc}
+#steps-section h3{color:#fb7185}
+#status{color:#f0f0f0;font-size:15px;line-height:1.4}
+.notes,.step{padding:12px 0;border-bottom:1px solid #1a1a1a;color:#e4e4e4;font-size:13px;line-height:1.55}
+.step small{display:block;color:#a3a3a3;font-style:normal;font-size:11px}
+#children{display:flex;flex-direction:column;gap:8px}
+@property --child-orbit{syntax:"<angle>";inherits:false;initial-value:0deg}
+button.child{position:relative;isolation:isolate;display:flex;align-items:flex-start;gap:11px;width:100%;margin:0;padding:13px 14px;border:1px solid color-mix(in srgb,var(--ring,#8ea0b3) 26%,#1a1a1a);border-radius:14px;background:#0c0c0c;color:#f4f4f5;font:500 14px/1.45 var(--sans);text-align:left;cursor:pointer;transition:background .18s ease,border-color .18s ease}
+.child-icon{position:relative;z-index:1;display:grid;place-items:center;flex:none;width:18px;height:18px;margin-top:2px;border:1px solid color-mix(in srgb,var(--ring,#8ea0b3) 48%,#273038);border-radius:50%;color:var(--ring,#8ea0b3)}
+.child-icon svg{display:block;width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.child-copy{position:relative;z-index:1;display:flex;flex-direction:column;gap:5px;min-width:0}
+.child-title{color:color-mix(in srgb,var(--ring,#d7e4f2) 65%,#fff);overflow-wrap:anywhere}
+.child-status{display:flex;align-items:center;gap:5px;color:color-mix(in srgb,var(--ring,#8ea0b3) 38%,#bdc8cf);font-size:11px;font-weight:450;line-height:1.3}
+.child.state-working{border-color:color-mix(in srgb,var(--ring,#8ea0b3) 42%,#1a1a1a);background:color-mix(in srgb,var(--ring,#8ea0b3) 4%,#0c0c0c)}
+.child.state-working::before{content:"";position:absolute;inset:-1px;z-index:0;padding:1.5px;border-radius:inherit;background:conic-gradient(from var(--child-orbit),transparent 0deg,transparent 215deg,color-mix(in srgb,var(--ring,#8ea0b3) 36%,transparent) 275deg,var(--ring,#8ea0b3) 327deg,#e8f8ff 352deg,transparent 360deg);mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);mask-composite:exclude;-webkit-mask-composite:xor;pointer-events:none;animation:child-orbit 2.8s linear infinite;animation-delay:var(--child-delay,0s)}
+.child.state-working .child-icon{border-color:var(--ring,#8ea0b3);background:color-mix(in srgb,var(--ring,#8ea0b3) 13%,transparent)}
+.child.state-working .child-icon::after{content:"";width:5px;height:5px;border-radius:50%;background:currentColor;animation:child-working 1.6s ease-in-out infinite}
+.child.state-working .child-title{color:color-mix(in srgb,var(--ring,#d7e4f2) 78%,#fff)}
+.child.state-resolved .child-icon{border-color:color-mix(in srgb,var(--ring,#8ea0b3) 40%,#273038);background:color-mix(in srgb,var(--ring,#8ea0b3) 10%,transparent)}
+.child.state-resolved .child-title{color:color-mix(in srgb,var(--ring,#d7e4f2) 38%,#e6ecef)}
+.child.state-pending{border-style:dashed;border-color:color-mix(in srgb,var(--ring,#8ea0b3) 24%,#202329)}
+.child.state-pending .child-icon{border-style:dashed;background:transparent}
+.child.state-pending .child-title{color:color-mix(in srgb,var(--ring,#d7e4f2) 26%,#ccd4da)}
+.child.state-pending .child-status{color:#a0adb5}
+.child.state-cancelled .child-icon{border-color:#72636c;color:#d8a4b3}
+.child.state-cancelled .child-status{color:#c6abb5}
+@keyframes child-orbit{to{--child-orbit:360deg}}
+@keyframes child-working{50%{opacity:.35;transform:scale(.75)}}
+button.child:hover{background:#141416;border-color:color-mix(in srgb,var(--ring,#8ea0b3) 58%,#1a1a1a)}
+button.child:focus-visible{outline:2px solid var(--ring,#fff);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){button.child{transition:none}.child.state-working::before,.child.state-working .child-icon::after{animation:none}}
+.step b{display:block;margin:4px 0 2px;color:#f4f4f5;font-size:12px}
+.step.on{margin:0 -8px;padding:10px 8px;border-radius:8px;background:#1a1a1a}
+.modal{position:fixed;inset:0;z-index:30;display:none;place-items:center;padding:32px;background:rgba(0,0,0,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.modal.open{display:grid;animation:report-veil .2s ease-out}
+.report{width:min(1040px,calc(100vw - 64px));height:min(1120px,calc(100dvh - 64px));display:grid;grid-template-rows:auto minmax(0,1fr);border:0;border-radius:16px;background:#fdfdfb;overflow:hidden;box-shadow:0 32px 100px #0007}
+.report header{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:17px 28px;border-bottom:1px solid #e6e9e7;background:#fdfdfb}
+.report-heading{display:flex;align-items:center;gap:11px;min-width:0}
+.report-heading>svg{flex:none;width:18px;height:18px;fill:none;stroke:#537078;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.report header b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:14px;font-weight:600;line-height:1.5;color:#34434a}
+.report header button{display:grid;place-items:center;flex:none;width:32px;height:32px;padding:0;border:0;border-radius:8px;background:transparent;color:#69757b;transition:background .16s ease,color .16s ease}
+.report header button svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
+.report header button:hover{color:#26383e;background:#edf0ee}
+.report header button:focus-visible{outline:2px solid #246477;outline-offset:2px}
+.prose{width:100%;min-width:0;min-height:0;margin:0;padding:48px 64px 88px;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;color:#394249;font-size:16px;line-height:1.85;scrollbar-color:#c6ceca transparent}
+.prose>:not(.table-wrap){max-width:74ch;margin-left:auto;margin-right:auto}
+.prose>:first-child{margin-top:0}
+.prose>:last-child{margin-bottom:0}
+.prose::-webkit-scrollbar{width:8px;height:8px}
+.prose::-webkit-scrollbar-thumb{background:#c6ceca;border:2px solid #fdfdfb;border-radius:99px}
+.prose ::selection{background:#dbeae8;color:#20383c}
+.prose h1{margin-top:0;margin-bottom:30px;color:#202d33;font-size:32px;font-weight:650;letter-spacing:-.025em;line-height:1.35;text-wrap:balance}
+.prose h2{margin-top:52px;margin-bottom:20px;padding-bottom:13px;border-bottom:1px solid #dce3df;color:#26383e;font-size:23px;font-weight:620;letter-spacing:-.015em;line-height:1.45;text-wrap:balance}
+.prose h3{margin-top:32px;margin-bottom:14px;color:#2e4148;font-size:18px;font-weight:620;line-height:1.5;text-wrap:balance}
+.prose h4{margin-top:26px;margin-bottom:12px;color:#34464d;font-size:16px;font-weight:620;line-height:1.55}
+.prose p{margin-top:0;margin-bottom:20px;text-indent:0;text-wrap:pretty}
+.prose strong{color:#27383f;font-weight:630}
+.prose a{color:#246477;text-decoration-line:underline;text-decoration-color:#24647755;text-decoration-thickness:1px;text-underline-offset:3px;overflow-wrap:anywhere}
+.prose a:visited{color:#246477}
+.prose a:hover{color:#154b5b;text-decoration-color:currentColor}
+.prose a:focus-visible{outline:2px solid #246477;outline-offset:3px;border-radius:2px}
+.prose blockquote{margin-top:24px;margin-bottom:28px;padding:20px 24px;border:0;border-radius:10px;background:#eef3f0}
+.prose blockquote p{margin:0;color:#344940;font-size:16px;line-height:1.85}
+.prose blockquote p+p{margin-top:12px}
+.prose ul,.prose ol{margin-top:8px;margin-bottom:24px;padding-left:1.4em}
+.prose li{margin:9px 0;padding-left:3px}
+.prose li::marker{color:#537c75}
+.prose li.source{list-style:none;margin-left:-1.4em;padding-left:0}
+.prose a.bookmark{display:flex;flex-direction:column;gap:5px;padding:12px 0;border-bottom:1px solid #e3e8e4;border-radius:0;background:transparent;color:#246477;text-decoration:none}
+.prose a.bookmark b{font-size:14px;font-weight:600;line-height:1.6}
+.prose a.bookmark small{color:#65756f;font-size:12px;font-weight:400;line-height:1.5}
+.prose a.bookmark:hover{background:transparent;border-bottom-color:#85a49b}
+.prose hr{height:1px;margin-top:36px;margin-bottom:36px;border:0;background:#e3e8e4}
+.prose .table-wrap{display:block;width:100%;max-width:100%;margin:20px 0 32px;overflow-x:auto;overscroll-behavior-x:contain;border:0;border-radius:6px;scrollbar-color:#c6ceca transparent}
+.prose .table-wrap:focus-visible{outline:2px solid #246477;outline-offset:3px}
+.prose table{table-layout:fixed;width:100%;border-collapse:collapse;border-spacing:0;font-size:14px;line-height:1.75;font-variant-numeric:tabular-nums}
+.prose th{position:sticky;top:0;z-index:1;padding:11px 14px;border:0;border-bottom:1px solid #cfd9d3;background:#eef2ef;color:#3b5148;font-size:12px;font-weight:650;letter-spacing:.025em;text-align:left;vertical-align:bottom;white-space:normal;overflow-wrap:break-word;word-break:normal}
+.prose td{padding:12px 14px;border:0;border-bottom:1px solid #e2e8e3;color:#394249;vertical-align:top;white-space:normal;overflow-wrap:break-word;word-break:normal}
+.prose tr:last-child td{border-bottom:1px solid #d6e0d9}
+.prose tbody tr:nth-child(even) td{background:#f5f7f3}
+.prose tbody tr:hover td{background:#eef3ef}
+.prose th.label,.prose td.label{color:#30463c;font-weight:600}
+.prose td.source{color:#54685e;font-size:13px}
+.prose th.num,.prose td.num{text-align:right;font-variant-numeric:tabular-nums}
+.prose code{padding:2px 5px;border-radius:4px;background:#edf1ed;color:#365149;font-family:var(--mono);font-size:.88em;overflow-wrap:anywhere}
+.prose pre{margin-top:20px;margin-bottom:24px;padding:18px 20px;overflow:auto;border:0;border-radius:10px;background:#edf1ed;line-height:1.65}
+.prose pre code{padding:0;background:transparent}
+.prose .report-status{color:#64746d;font-size:14px}
+.modal.open .report{animation:report-in .3s cubic-bezier(.16,1,.3,1)}
+@keyframes report-in{from{opacity:0;transform:translateY(10px) scale(.99)}to{opacity:1;transform:none}}
+@keyframes report-veil{from{opacity:0}to{opacity:1}}
+@media(max-width:900px){
+  .workspace,.app.has-selection .workspace{grid-template-columns:1fr}
+  .app.has-selection .drawer{position:absolute;right:0;top:0;bottom:0;width:min(360px,100%);z-index:6}
+  .modal{padding:12px}
+  .report{width:100%;height:calc(100dvh - 24px);border-radius:12px}
+  .report header{padding:14px 20px;gap:14px}
+  .prose{padding:32px 24px 56px}
+  .prose h1{font-size:27px}
+  .prose h2{font-size:21px;margin-top:40px}
+  .prose .table-wrap{overflow-x:auto}
+}
+@media(max-width:480px){.prose{padding:26px 18px 48px;font-size:15px}.prose h1{font-size:24px}.prose h2{font-size:20px}.report header{padding:12px 16px}.report-heading{gap:8px}.report header b{font-size:13px}}
+@media(prefers-reduced-motion:reduce){.modal.open,.modal.open .report{animation:none}.report header button{transition:none}}
+@media(prefers-reduced-motion:reduce){.edge.focus-trace,.node.selected.focus-in,.node.dim.focus-away,.drawer.focus-in,.drawer.focus-in::before,.drawer.focus-in .drawer-head,.drawer.focus-in .drawer-body{animation:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <a class="brand" href="/" title="回到主页">PiResearch</a>
+    <b id="goal-text">正在读取</b>
+    <button id="open-report" type="button">报告</button>
+  </header>
+  <div class="workspace">
+    <main class="canvas" id="canvas">
+      <div class="sky" id="sky"></div>
+      <div class="world" id="world"></div>
+      <div class="world live-layer" id="live-layer"></div>
+      <div class="empty" id="empty" hidden><div><b>没有星图</b><span id="empty-text"></span></div></div>
+      <div class="legend">
+        <span><i class="swatch"></i>子节点</span>
+        <span><i class="swatch audit"></i>审核</span>
+        <span><i class="swatch support"></i>支持</span>
+        <span><i class="swatch challenge"></i>挑战</span>
+        <span><i class="swatch error"></i>错误</span>
+      </div>
+      <div class="zoom" role="group" aria-label="星图视图控制">
+        <div class="zoom-scale">
+          <button id="zoom-out" type="button" aria-label="缩小星图" title="缩小"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10h10"/></svg></button>
+          <output id="zoom-level" aria-label="当前缩放比例" aria-live="off">100%</output>
+          <button id="zoom-in" type="button" aria-label="放大星图" title="放大"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10h10M10 5v10"/></svg></button>
+        </div>
+        <span class="zoom-divider" aria-hidden="true"></span>
+        <button id="zoom-fit" class="zoom-home" type="button"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 3.5H4.5a1 1 0 0 0-1 1V7M13 3.5h2.5a1 1 0 0 1 1 1V7M16.5 13v2.5a1 1 0 0 1-1 1H13M7 16.5H4.5a1 1 0 0 1-1-1V13"/><circle cx="10" cy="10" r="2.5"/></svg><span>回到主节点</span></button>
+      </div>
+      <div id="chip-tip" class="chip-tip" role="tooltip"></div>
+    </main>
+    <aside class="drawer">
+      <header class="drawer-head"><button type="button" id="back-goal" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5 5.5 8 10 12.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>回到主节点</button><span class="kind" id="kind">节点</span><h2 id="title">点选一个节点</h2><p id="agents"></p></header>
+      <div class="drawer-body">
+        <section class="section" id="status-section"><h3>状态</h3><div id="status">—</div></section>
+        <section class="section" id="notes-section"><h3>备注</h3><div class="notes" id="notes">—</div></section>
+        <section class="section" id="children-section"><h3>子任务</h3><div id="children">—</div></section>
+        <section class="section" id="steps-section"><h3>工具步骤</h3><div id="steps">—</div></section>
+      </div>
+    </aside>
+  </div>
+</div>
+<div class="modal" id="modal"><article class="report" role="dialog" aria-modal="true" aria-labelledby="report-title"><header><div class="report-heading"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11.5 2.5h-6a1 1 0 0 0-1 1v13a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-10zM11.5 2.5v4h4M7.5 10h5M7.5 13h5"/></svg><b id="report-title">研究报告</b></div><button id="close-report" type="button" aria-label="关闭报告"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m6 6 8 8M14 6l-8 8"/></svg></button></header><div class="prose" id="report-body"></div></article></div>
+<script>
+const studyMatch = location.pathname.match(/^\/study\/(.+?)\/?$/);
+const API = studyMatch ? "/api/studies/" + studyMatch[1].replace(/\/$/, "") : "";
+function endpoint(name){ return API ? `${API}/${name}` : `/api/${name}`; }
+function paintSky(){
+  const sky = document.querySelector("#sky");
+  if(!sky || sky.childElementCount) return;
+  let seed = 20261013;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for(let i = 0; i < 168; i++){
+    const star = document.createElement("i");
+    const roll = rnd();
+    const size = roll > 0.94 ? 2.2 : roll > 0.78 ? 1.6 : 1;
+    const glow = size > 2 ? 3 : 0;
+    star.style.left = `${(rnd() * 100).toFixed(2)}%`;
+    star.style.top = `${(rnd() * 100).toFixed(2)}%`;
+    star.style.width = star.style.height = `${size}px`;
+    star.style.opacity = (0.16 + rnd() * (size > 2 ? 0.55 : 0.38)).toFixed(2);
+    if(glow) star.style.boxShadow = `0 0 ${glow}px rgba(214,214,218,.45)`;
+    sky.appendChild(star);
+  }
+}
+paintSky();
+const STATUS = {open:"未开始", in_progress:"进行中", resolved:"已完成", cancelled:"已取消"};
+const REL = {parent:"子节点", audit:"审核", support:"支持", challenge:"挑战", error:"错误"};
+const TOOL = {web_search:"搜索", web_fetch:"打开", bash:"命令", read_file:"读取", create_file:"写入", submit_report:"提交", download_file:"下载", "压缩":"压缩", "思考":"思考"};
+const TITLE_COLOR = {web_search:"#60a5fa", web_fetch:"#2dd4bf", bash:"#fb923c", read_file:"#a3e635", create_file:"#f472b6", submit_report:"#e879f9", download_file:"#818cf8", "压缩":"#f9a8d4", "思考":"#fdba74"};
+const MARK = {web_search:"#48d3e4", web_fetch:"#6d9cff", bash:"#8ea0b3", read_file:"#aa8cff", create_file:"#58d69a", submit_report:"#f4c56a", "压缩":"#7ddec8", "思考":"#48d3e4"};
+let view = null;
+let scale = 1;
+let selected = null;
+let selectionTransition = false;
+let activeStep = null;
+let fittedKey = "";
+let holdScale = false;
+let panX = 0;
+let panY = 0;
+let userMoved = false;
+let chipHost = null;
+let revealedFor = null;
+let burstId = "";
+let burstAt = 0;
+let glideToken = 0;
+const haloSeen = new Map();
+const toneSeen = new Map();
+let goalWorkStart = 0;
+const BURST_STEP = 18;
+const BURST_MS = 340;
+
+function shortTitle(text){
+  const cleaned = String(text || "").replace(/^#\s*Task\s*/i, "").trim();
+  const sentence = cleaned.split(/[。\n]/)[0].trim() || cleaned;
+  return sentence.length > 28 ? sentence.slice(0, 28) + "…" : sentence;
+}
+
+function boundsKey(){
+  let maxX = 0, maxY = 0, count = 0;
+  (view && view.nodes || []).forEach(node => {
+    count += 1;
+    maxX = Math.max(maxX, node.x + (node.radius || 0));
+    maxY = Math.max(maxY, node.y + (node.radius || 0));
+  });
+  return `${count}:${Math.round(maxX)}:${Math.round(maxY)}`;
+}
+
+function applyTransform(){
+  const transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+  document.querySelector("#world").style.transform = transform;
+  document.querySelector("#live-layer").style.transform = transform;
+  const zoomLevel = document.querySelector("#zoom-level");
+  const percentage = `${Math.round(scale * 100)}%`;
+  if(zoomLevel.textContent !== percentage) zoomLevel.textContent = percentage;
+}
+
+function fit(){
+  if(!view || !view.ok || !(view.nodes || []).length) return;
+  const canvas = document.querySelector("#canvas");
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  view.nodes.forEach(node => {
+    const radius = node.radius || view.radius || 58;
+    minX = Math.min(minX, node.x - radius);
+    minY = Math.min(minY, node.y - radius);
+    maxX = Math.max(maxX, node.x + radius);
+    maxY = Math.max(maxY, node.y + radius);
+  });
+  const padX = 40;
+  const padTop = 28;
+  const padBottom = 72;
+  const worldW = Math.max(1, maxX - minX);
+  const worldH = Math.max(1, maxY - minY);
+  const sx = Math.max(1, canvas.clientWidth - padX * 2) / worldW;
+  const sy = Math.max(1, canvas.clientHeight - padTop - padBottom) / worldH;
+  scale = Math.max(0.12, Math.min(1.15, Math.min(sx, sy)));
+  panX = (canvas.clientWidth - worldW * scale) / 2 - minX * scale;
+  panY = padTop + (canvas.clientHeight - padTop - padBottom - worldH * scale) / 2 - minY * scale;
+}
+
+function nodeById(id){return (view.nodes || []).find(node => node.id === id)}
+
+function liveKey(source){
+  return (source && source.nodes || []).map(node => `${node.id}:${(node.live || []).map(step => step.label).join("/")}`).join("|");
+}
+
+function sizeKey(source){
+  return (source && source.nodes || []).map(node => `${node.id}:${node.radius}`).join("|");
+}
+
+function linkedIds(id){
+  const ids = new Set([id]);
+  (view.edges || []).forEach(edge => {
+    if(edge.from === id || edge.to === id){
+      ids.add(edge.from);
+      ids.add(edge.to);
+    }
+  });
+  return ids;
+}
+
+function nodeBounds(){
+  let minX = Infinity, minY = Infinity, maxX = 0, maxY = 0;
+  (view.nodes || []).forEach(node => {
+    const radius = node.radius || 58;
+    minX = Math.min(minX, node.x - radius);
+    minY = Math.min(minY, node.y - radius);
+    maxX = Math.max(maxX, node.x + radius);
+    maxY = Math.max(maxY, node.y + radius);
+  });
+  return {minX, minY, maxX, maxY};
+}
+
+function rememberTip(el, step){
+  const label = String((step && step.label) || "").trim();
+  const matched = label.match(/^【([^】]+)】(.*)$/);
+  const rest = (matched ? matched[2] : label).trim();
+  const hint = String((step && step.hint) || "").trim();
+  el.dataset.tipAction = matched ? matched[1] : "";
+  el.dataset.tip = hint.length > rest.length ? hint : (rest || hint);
+  el.removeAttribute("title");
+}
+
+function fillLabel(parent, label){
+  const matched = String(label || "").match(/^【([^】]+)】(.*)$/);
+  parent.textContent = "";
+  if(!matched){
+    parent.textContent = label;
+    return;
+  }
+  const action = document.createElement("b");
+  action.className = "act";
+  action.textContent = `【${matched[1]}】`;
+  parent.append(action);
+  if(matched[2]) parent.append(document.createTextNode(matched[2]));
+}
+
+function chipBox(step){
+  const label = String(step.label || step.tool || "");
+  let text = 0;
+  for(const ch of label) text += ch.charCodeAt(0) > 255 ? 13 : 7.1;
+  if((step.count || 1) > 1) text += 32;
+  const screenW = Math.min(280, Math.max(108, Math.ceil(text + 42)));
+  return {w: screenW / scale, h: 26 / scale};
+}
+
+function rectHitsCircle(rect, node, pad){
+  const radius = (node.radius || 58) + pad;
+  const nearestX = Math.max(rect.x, Math.min(node.x, rect.x + rect.w));
+  const nearestY = Math.max(rect.y, Math.min(node.y, rect.y + rect.h));
+  return Math.hypot(node.x - nearestX, node.y - nearestY) < radius;
+}
+
+function rectsOverlap(a, b, pad){
+  return a.x < b.x + b.w + pad && a.x + a.w + pad > b.x && a.y < b.y + b.h + pad && a.y + a.h + pad > b.y;
+}
+
+function placeChips(node, steps, occupied){
+  const boxes = steps.map(chipBox);
+  const gap = 8 / scale;
+  const rowH = boxes[0].h;
+  const radius = node.radius || 58;
+  const margin = 16 / scale;
+  const canvas = document.querySelector("#canvas");
+  const frame = {
+    left: (-panX + 12) / scale,
+    top: (-panY + 12) / scale,
+    right: (canvas.clientWidth - panX - 12) / scale,
+    bottom: (canvas.clientHeight - panY - 76) / scale,
+  };
+  const rowsFit = Math.max(6, Math.floor((frame.bottom - frame.top) * 0.62 / (rowH + gap)));
+  let useCols = boxes.length > rowsFit ? Math.ceil(boxes.length / rowsFit) : 1;
+  useCols = Math.min(4, Math.max(1, useCols));
+  if(useCols > 1){
+    const maxW = Math.max(108 / scale, (frame.right - frame.left - gap * (useCols - 1)) / useCols);
+    boxes.forEach(box => { box.w = Math.min(box.w, maxW); });
+  }
+  const colW = Math.max(...boxes.map(box => box.w));
+  const rows = Math.ceil(boxes.length / useCols);
+  const gridW = useCols * colW + (useCols - 1) * gap;
+  const gridH = rows * rowH + (rows - 1) * gap;
+  let best = null;
+  let bestScore = Infinity;
+  const bestCols = useCols;
+  function clipped(rect){
+    const ox = Math.max(0, frame.left - rect.x) + Math.max(0, rect.x + rect.w - frame.right);
+    const oy = Math.max(0, frame.top - rect.y) + Math.max(0, rect.y + rect.h - frame.bottom);
+    return ox + oy;
+  }
+  function consider(x, y){
+    const rect = {x, y, w: gridW, h: gridH};
+    const dist = Math.hypot(x + gridW / 2 - node.x, y + gridH / 2 - node.y);
+    let score = dist + clipped(rect) * 18;
+    view.nodes.forEach(other => { if(rectHitsCircle(rect, other, 10 / scale)) score += 8000; });
+    (occupied || []).forEach(box => { if(rectsOverlap(rect, box, 8 / scale)) score += 5000; });
+    if(score < bestScore){ bestScore = score; best = {x, y}; }
+  }
+  const slide = rowH + gap;
+  const shifts = [0, 1, -1, 2, -2, 3, -3];
+  for(let ring = 0; ring < 10; ring++){
+    const dist = margin + ring * (22 / scale);
+    shifts.forEach(nudge => {
+      const shift = nudge * slide * 0.7;
+      consider(node.x + radius + dist, node.y - gridH / 2 + shift);
+      consider(node.x - radius - dist - gridW, node.y - gridH / 2 + shift);
+      consider(node.x - gridW / 2 + shift, node.y - radius - dist - gridH);
+      consider(node.x - gridW / 2 + shift, node.y + radius + dist);
+    });
+  }
+  if(!best) best = {x: node.x + radius + margin, y: node.y - gridH / 2};
+  const spots = boxes.map((box, index) => {
+    const col = index % bestCols;
+    const row = Math.floor(index / bestCols);
+    return {
+      x: best.x + col * (colW + gap),
+      y: best.y + row * (rowH + gap),
+      w: box.w,
+      h: box.h,
+    };
+  });
+  spots.forEach(spot => (occupied || []).push(spot));
+  return spots;
+}
+
+function placeOne(node, step, occupied){
+  const box = chipBox(step);
+  const radius = node.radius || 58;
+  const gap = 12 / scale;
+  const canvas = document.querySelector("#canvas");
+  const frame = {
+    left: (-panX + 12) / scale,
+    top: (-panY + 12) / scale,
+    right: (canvas.clientWidth - panX - 12) / scale,
+    bottom: (canvas.clientHeight - panY - 76) / scale,
+  };
+  let best = null;
+  let bestDist = Infinity;
+  let fallback = null;
+  let fallbackScore = Infinity;
+  const reach = radius + Math.max(box.w, box.h) + 280;
+  for(let ring = 0; ring < 16; ring++){
+    const dist = radius + gap + box.h / 2 + ring * (20 / scale);
+    if(dist > reach && best) break;
+    for(let stepIndex = 0; stepIndex < 16; stepIndex++){
+      const angle = -Math.PI / 2 + stepIndex * (Math.PI * 2 / 16) + ring * 0.22;
+      const cx = node.x + Math.cos(angle) * dist;
+      const cy = node.y + Math.sin(angle) * dist;
+      const rect = {x: cx - box.w / 2, y: cy - box.h / 2, w: box.w, h: box.h};
+      let nodesHit = 0;
+      let chipsHit = 0;
+      view.nodes.forEach(other => { if(rectHitsCircle(rect, other, 12 / scale)) nodesHit += 1; });
+      (occupied || []).forEach(prev => { if(rectsOverlap(rect, prev, 8 / scale)) chipsHit += 1; });
+      const ox = Math.max(0, frame.left - rect.x) + Math.max(0, rect.x + rect.w - frame.right);
+      const oy = Math.max(0, frame.top - rect.y) + Math.max(0, rect.y + rect.h - frame.bottom);
+      const clip = ox + oy;
+      const centerDist = Math.hypot(cx - node.x, cy - node.y);
+      if(nodesHit === 0 && chipsHit === 0 && clip < 1 && centerDist < bestDist){
+        bestDist = centerDist;
+        best = rect;
+      }
+      const score = centerDist + nodesHit * 8000 + chipsHit * 5000 + clip * 18;
+      if(score < fallbackScore){
+        fallbackScore = score;
+        fallback = rect;
+      }
+    }
+  }
+  const spot = best || fallback || {x: node.x + radius + gap, y: node.y - box.h / 2, w: box.w, h: box.h};
+  (occupied || []).push(spot);
+  return spot;
+}
+
+function glidePan(nextX, nextY){
+  const token = ++glideToken;
+  const fromX = panX;
+  const fromY = panY;
+  const start = performance.now();
+  const duration = 760;
+  function frame(now){
+    if(token !== glideToken) return;
+    const t = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    panX = fromX + (nextX - fromX) * eased;
+    panY = fromY + (nextY - fromY) * eased;
+    applyTransform();
+    if(t < 1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+function revealChips(node, spots){
+  if(!spots.length || revealedFor === node.id) return;
+  revealedFor = node.id;
+  const canvas = document.querySelector("#canvas");
+  const pad = 16;
+  const bottomPad = 76;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  spots.forEach(spot => {
+    minX = Math.min(minX, spot.x);
+    minY = Math.min(minY, spot.y);
+    maxX = Math.max(maxX, spot.x + spot.w);
+    maxY = Math.max(maxY, spot.y + spot.h);
+  });
+  const width = canvas.clientWidth;
+  const height = canvas.clientHeight;
+  let nextX = panX;
+  let nextY = panY;
+  const left = nextX + minX * scale;
+  const right = nextX + maxX * scale;
+  const top = nextY + minY * scale;
+  const bottom = nextY + maxY * scale;
+  if(right - left <= width - pad * 2){
+    if(right > width - pad) nextX -= right - (width - pad);
+    if(nextX + minX * scale < pad) nextX += pad - (nextX + minX * scale);
+  } else {
+    nextX = pad - minX * scale;
+  }
+  if(bottom - top <= height - pad - bottomPad){
+    if(bottom > height - bottomPad) nextY -= bottom - (height - bottomPad);
+    if(nextY + minY * scale < pad) nextY += pad - (nextY + minY * scale);
+  } else {
+    nextY = pad - minY * scale;
+  }
+  userMoved = true;
+  holdScale = true;
+  if(Math.hypot(nextX - panX, nextY - panY) < 2) return;
+  const token = ++glideToken;
+  setTimeout(() => {
+    if(token !== glideToken) return;
+    glidePan(nextX, nextY);
+  }, 180);
+}
+
+function toolCount(node){
+  const done = (node.steps || []).length;
+  const live = (node.live || []).filter(step => step.tool && step.tool !== "思考").length;
+  return done + live;
+}
+
+function awaitingAgent(node){
+  return !node.goal && node.status !== "cancelled" && node.status !== "resolved" && !(node.agents && node.agents.length) && toolCount(node) === 0;
+}
+
+function goalIsWorking(node){
+  if(!node.goal || !view || !view.running) return false;
+  return !(view.nodes || []).some(item => !item.goal);
+}
+
+function ringAmount(node, calls){
+  if(node.status === "cancelled") return 0;
+  if(node.goal){
+    if(!goalIsWorking(node)) return 0;
+    if(!goalWorkStart) goalWorkStart = performance.now();
+    const elapsed = (performance.now() - goalWorkStart) / 45000;
+    return Math.min(0.78, 0.18 + elapsed * 0.6);
+  }
+  if(!goalIsWorking({goal:true}) ) goalWorkStart = 0;
+  if(node.status === "resolved") return 1;
+  if(awaitingAgent(node)) return 0.28;
+  if(node.status !== "in_progress" && calls <= 0) return 0;
+  const grown = Math.min(0.88, 1 - 1 / (1 + calls / 7));
+  return node.status === "in_progress" ? Math.max(0.1, grown) : grown;
+}
+
+let goalTicker = 0;
+function ensureGoalTicker(){
+  if(goalTicker) return;
+  const step = () => {
+    const arc = document.querySelector(".node.working .halo .arc");
+    if(!arc || !arc.dataset.circ){
+      goalTicker = 0;
+      return;
+    }
+    const elapsed = (performance.now() - goalWorkStart) / 45000;
+    const amount = Math.min(0.78, 0.18 + elapsed * 0.6);
+    const circ = Number(arc.dataset.circ);
+    arc.style.strokeDasharray = `${(amount * circ).toFixed(2)} ${circ.toFixed(2)}`;
+    goalTicker = requestAnimationFrame(step);
+  };
+  goalTicker = requestAnimationFrame(step);
+}
+
+function burstDelay(id, index){
+  if(burstId !== id) return -1e9;
+  return index * BURST_STEP - (performance.now() - burstAt);
+}
+
+const liveChips = new Map();
+const liveSpokes = new Map();
+
+function liveIdentity(node, step, nth){
+  return [node.id, step.tool || "", step.label || "", String(nth)].join("\u001f");
+}
+
+function styleChip(el, spot){
+  el.style.left = `${spot.x}px`;
+  el.style.top = `${spot.y}px`;
+  el.style.width = `${spot.w}px`;
+  el.style.height = `${spot.h}px`;
+  el.style.padding = `0 ${10 / scale}px`;
+  el.style.gap = `${6 / scale}px`;
+  el.style.borderRadius = `${spot.h / 2}px`;
+  el.style.fontSize = `${12 / scale}px`;
+}
+
+function chipAnchor(node, spot){
+  const cx = spot.x + spot.w / 2;
+  const cy = spot.y + spot.h / 2;
+  const horizontal = Math.abs(cx - node.x) >= Math.abs(cy - node.y);
+  const x2 = horizontal ? (cx >= node.x ? spot.x : spot.x + spot.w) : cx;
+  const y2 = horizontal ? cy : (cy >= node.y ? spot.y : spot.y + spot.h);
+  return {x2, y2};
+}
+
+function clearLive(){
+  liveChips.clear();
+  liveSpokes.clear();
+  const layer = document.querySelector("#live-layer");
+  if(layer) layer.replaceChildren();
+}
+
+function retreatChip(el){
+  const node = nodeById(el.dataset.node);
+  el.classList.remove("burst");
+  if(!node){
+    el.remove();
+    return;
+  }
+  const x = parseFloat(el.style.left) || node.x;
+  const y = parseFloat(el.style.top) || node.y;
+  const w = parseFloat(el.style.width) || 0;
+  const h = parseFloat(el.style.height) || 0;
+  el.style.setProperty("--from-x", `${(node.x - (x + w / 2)).toFixed(1)}px`);
+  el.style.setProperty("--from-y", `${(node.y - (y + h / 2)).toFixed(1)}px`);
+  el.classList.add("retreat");
+  const done = () => el.remove();
+  el.addEventListener("animationend", done, {once: true});
+  setTimeout(done, 420);
+}
+
+function makeLiveChip(node, step, spot){
+  const el = document.createElement("button");
+  el.type = "button";
+  el.className = `satellite live tool-${step.tool} tone-${node.tone || "blue"} burst`;
+  el.dataset.node = node.id;
+  el.style.setProperty("--from-x", `${(node.x - (spot.x + spot.w / 2)).toFixed(1)}px`);
+  el.style.setProperty("--from-y", `${(node.y - (spot.y + spot.h / 2)).toFixed(1)}px`);
+  styleChip(el, spot);
+  rememberTip(el, step);
+  const mark = document.createElement("i");
+  mark.className = "mark";
+  mark.style.width = mark.style.height = `${6 / scale}px`;
+  const text = document.createElement("span");
+  fillLabel(text, step.label || TOOL[step.tool] || step.tool);
+  el.append(mark, text);
+  el.addEventListener("animationend", () => el.classList.remove("burst"), {once: true});
+  el.addEventListener("click", event => {
+    event.stopPropagation();
+    select(node.id, null);
+  });
+  return el;
+}
+
+function liveSpokeSvg(){
+  const layer = document.querySelector("#live-layer");
+  let svg = layer.querySelector("svg.live-spokes");
+  if(svg) return svg;
+  svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "edges live-spokes");
+  svg.setAttribute("width", "4000");
+  svg.setAttribute("height", "4000");
+  layer.prepend(svg);
+  return svg;
+}
+
+function paintSpoke(line, node, spot, step, radiusOf, emerge){
+  const {x2, y2} = chipAnchor(node, spot);
+  const dx = x2 - node.x, dy = y2 - node.y, len = Math.hypot(dx, dy) || 1;
+  const radius = radiusOf(node);
+  line.setAttribute("stroke", MARK[step.tool] || "#9ec9d6");
+  line.setAttribute("x1", (node.x + dx / len * radius).toFixed(1));
+  line.setAttribute("y1", (node.y + dy / len * radius).toFixed(1));
+  line.setAttribute("x2", x2.toFixed(1));
+  line.setAttribute("y2", y2.toFixed(1));
+  if(emerge) line.setAttribute("class", "spoke burst");
+}
+
+function syncLive(items, radiusOf){
+  const layer = document.querySelector("#live-layer");
+  const svg = liveSpokeSvg();
+  const wanted = new Map();
+  items.forEach(item => {
+    const seen = new Map();
+    item.spots.forEach((spot, index) => {
+      const step = item.node.live[index];
+      const base = `${step.tool}|${step.label}`;
+      const nth = seen.get(base) || 0;
+      seen.set(base, nth + 1);
+      wanted.set(liveIdentity(item.node, step, nth), {node: item.node, step, spot});
+    });
+  });
+  for(const [key, el] of [...liveChips]){
+    if(wanted.has(key)) continue;
+    liveChips.delete(key);
+    retreatChip(el);
+    const line = liveSpokes.get(key);
+    liveSpokes.delete(key);
+    if(!line) continue;
+    line.setAttribute("class", "spoke retreat");
+    const drop = () => line.remove();
+    line.addEventListener("animationend", drop, {once: true});
+    setTimeout(drop, 420);
+  }
+  wanted.forEach((item, key) => {
+    const existing = liveChips.get(key);
+    if(existing){
+      styleChip(existing, item.spot);
+      const line = liveSpokes.get(key);
+      if(line) paintSpoke(line, item.node, item.spot, item.step, radiusOf, false);
+      return;
+    }
+    const el = makeLiveChip(item.node, item.step, item.spot);
+    liveChips.set(key, el);
+    layer.appendChild(el);
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    paintSpoke(line, item.node, item.spot, item.step, radiusOf, true);
+    svg.appendChild(line);
+    liveSpokes.set(key, line);
+  });
+}
+
+function draw(){
+  hideChipTip();
+  document.querySelector(".app").classList.toggle("has-selection", Boolean(selected));
+  const animateSelection = selectionTransition && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  selectionTransition = false;
+  const drawer = document.querySelector(".drawer");
+  if(animateSelection && selected){
+    const node = nodeById(selected);
+    const canvasHeight = document.querySelector("#canvas").clientHeight;
+    const focusY = node ? Math.max(36,Math.min(canvasHeight - 36,panY + node.y * scale)) : canvasHeight / 2;
+    drawer.style.setProperty("--focus-y", `${focusY}px`);
+    drawer.style.setProperty("--drawer-dy", `${Math.max(-16,Math.min(16,(focusY - canvasHeight / 2) * .08))}px`);
+    drawer.classList.remove("focus-in");
+    void drawer.offsetWidth;
+    drawer.classList.add("focus-in");
+  } else if(!selected){
+    drawer.classList.remove("focus-in");
+  }
+  const world = document.querySelector("#world");
+  world.innerHTML = "";
+  applyTransform();
+  if(!view || !view.ok){
+    clearLive();
+    document.querySelector("#empty").hidden = false;
+    document.querySelector("#empty-text").textContent = view ? view.message : "";
+    document.querySelector("#goal-text").textContent = "这份运行没有星图";
+    return;
+  }
+  document.querySelector("#empty").hidden = true;
+  document.querySelector("#goal-text").textContent = shortTitle(view.goal.title) || "";
+  const radiusOf = node => node.radius || view.radius || 58;
+  let maxX = 0, maxY = 0;
+  view.nodes.forEach(node => {
+    const radius = radiusOf(node);
+    maxX = Math.max(maxX, node.x + radius);
+    maxY = Math.max(maxY, node.y + radius);
+  });
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "edges");
+  svg.setAttribute("width", String(maxX + 140));
+  svg.setAttribute("height", String(maxY + 140));
+  const bends = {parent: 36, audit: -78, support: 58, challenge: -64, error: -96};
+  const shownRelation = edge => edge.relation === "fusion" ? "audit" : edge.relation;
+  const parentCount = {};
+  const sameTarget = {};
+  (view.edges || []).forEach(edge => {
+    const relation = shownRelation(edge);
+    if(relation === "parent") parentCount[edge.from] = (parentCount[edge.from] || 0) + 1;
+    const key = `${relation}:${edge.to}`;
+    sameTarget[key] = (sameTarget[key] || 0) + 1;
+  });
+  (view.edges || []).forEach((edge, index) => {
+    const from = nodeById(edge.from), to = nodeById(edge.to);
+    if(!from || !to) return;
+    const dx = to.x - from.x, dy = to.y - from.y, len = Math.hypot(dx, dy) || 1;
+    const ux = dx / len, uy = dy / len;
+    const x1 = from.x + ux * radiusOf(from), y1 = from.y + uy * radiusOf(from);
+    const x2 = to.x - ux * radiusOf(to), y2 = to.y - uy * radiusOf(to);
+    const relation = shownRelation(edge);
+    const bend = (bends[relation] || 40) + (index % 4) * 10;
+    const mx = (x1 + x2) / 2 - uy * bend;
+    const my = (y1 + y2) / 2 + ux * bend;
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    const hot = !selected || edge.from === selected || edge.to === selected;
+    path.setAttribute("class", `edge ${relation}${hot ? "" : " dim"}`);
+    path.setAttribute("d", `M ${x1.toFixed(1)} ${y1.toFixed(1)} Q ${mx.toFixed(1)} ${my.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`);
+    svg.appendChild(path);
+    if(animateSelection && hot){
+      const trace = path.cloneNode();
+      trace.setAttribute("class", `edge ${relation} focus-trace`);
+      trace.setAttribute("pathLength", "1");
+      svg.appendChild(trace);
+    }
+    const crowded = (relation === "parent" && parentCount[edge.from] > 3) || sameTarget[`${relation}:${edge.to}`] > 4;
+    if(crowded) return;
+    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    label.setAttribute("class", `edge-label${hot ? "" : " dim"}`);
+    label.setAttribute("x", mx.toFixed(1));
+    label.setAttribute("y", (my - 6).toFixed(1));
+    label.setAttribute("text-anchor", "middle");
+    label.textContent = REL[relation] || relation;
+    svg.appendChild(label);
+  });
+  const focus = selected ? nodeById(selected) : null;
+  const occupied = [];
+  const spots = focus && focus.steps && focus.steps.length ? placeChips(focus, focus.steps, occupied) : [];
+  if(focus && spots.length) revealChips(focus, spots);
+  applyTransform();
+  const arrive = Boolean(selected && selected !== chipHost);
+  if(arrive){
+    burstId = selected;
+    burstAt = performance.now();
+  }
+  if(selected) chipHost = selected;
+  else chipHost = null;
+  const liveNodes = (view.nodes || []).filter(node => node.live && node.live.length && node.id !== selected);
+  const livePlaced = liveNodes.map(node => ({
+    node,
+    spots: node.live.map(step => placeOne(node, step, occupied)),
+  }));
+  if(spots.length){
+    const gridLeft = Math.min(...spots.map(spot => spot.x));
+    const gridRight = Math.max(...spots.map(spot => spot.x + spot.w));
+    const gridTop = Math.min(...spots.map(spot => spot.y));
+    const gridBottom = Math.max(...spots.map(spot => spot.y + spot.h));
+    const horizontal = Math.abs((gridLeft + gridRight) / 2 - focus.x) >= Math.abs((gridTop + gridBottom) / 2 - focus.y);
+    spots.forEach((spot, index) => {
+      const step = focus.steps[index];
+      const onInner = horizontal
+        ? ((gridLeft + gridRight) / 2 >= focus.x ? Math.abs(spot.x - gridLeft) < 2 : Math.abs(spot.x + spot.w - gridRight) < 2)
+        : ((gridTop + gridBottom) / 2 >= focus.y ? Math.abs(spot.y - gridTop) < 2 : Math.abs(spot.y + spot.h - gridBottom) < 2);
+      if(!onInner) return;
+      const x2 = horizontal ? ((gridLeft + gridRight) / 2 >= focus.x ? spot.x : spot.x + spot.w) : spot.x + spot.w / 2;
+      const y2 = horizontal ? spot.y + spot.h / 2 : ((gridTop + gridBottom) / 2 >= focus.y ? spot.y : spot.y + spot.h);
+      const dx = x2 - focus.x, dy = y2 - focus.y, len = Math.hypot(dx, dy) || 1;
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      const delay = burstDelay(focus.id, index);
+      line.setAttribute("class", `spoke${delay > -BURST_MS ? " burst" : ""}`);
+      if(delay > -BURST_MS) line.style.animationDelay = `${delay}ms`;
+      line.setAttribute("stroke", MARK[step.tool] || "#9ec9d6");
+      line.setAttribute("x1", (focus.x + dx / len * radiusOf(focus)).toFixed(1));
+      line.setAttribute("y1", (focus.y + dy / len * radiusOf(focus)).toFixed(1));
+      line.setAttribute("x2", x2.toFixed(1));
+      line.setAttribute("y2", y2.toFixed(1));
+      svg.appendChild(line);
+    });
+  }
+  world.appendChild(svg);
+  const linked = selected ? linkedIds(selected) : null;
+  const taskNodes = view.nodes.filter(node => !node.goal);
+  const resolvedCount = taskNodes.filter(node => node.status === "resolved").length;
+  const agentCount = new Set(taskNodes.flatMap(node => node.agents || [])).size;
+  view.nodes.forEach(node => {
+    const el = document.createElement("button");
+    const nodeRadius = radiusOf(node);
+    const dim = linked && !linked.has(node.id);
+    el.type = "button";
+    const fresh = !toneSeen.has(node.id);
+    const previousTone = toneSeen.get(node.id);
+    const tone = node.tone || "blue";
+    toneSeen.set(node.id, tone);
+    const pending = awaitingAgent(node);
+    const working = goalIsWorking(node);
+    const erroneous = (view.edges || []).some(edge => edge.relation === "error" && edge.to === node.id);
+    el.className = `node tone-${tone} weight-${node.weight || "node"}${nodeRadius < 72 && !node.goal ? " compact" : ""}${node.status === "in_progress" ? " in_progress" : ""}${pending ? " pending" : ""}${working ? " working" : ""}${erroneous ? " erroneous" : ""}${fresh ? " arrive" : ""}${previousTone && previousTone !== tone ? " tone-arrive" : ""}${node.status === "cancelled" ? " cancelled" : ""}${selected === node.id ? " selected" : ""}${dim ? " dim" : ""}${animateSelection && selected === node.id ? " focus-in" : ""}${animateSelection && dim ? " focus-away" : ""}`;
+    el.style.left = `${node.x - nodeRadius}px`;
+    el.style.top = `${node.y - nodeRadius}px`;
+    el.style.width = `${nodeRadius * 2}px`;
+    el.style.height = `${nodeRadius * 2}px`;
+    el.style.setProperty("--node-font", `${node.goal ? Math.min(17,Math.max(14,nodeRadius * .13)) : Math.min(14,Math.max(12,nodeRadius * .14))}px`);
+    el.dataset.id = node.id;
+    el.dataset.status = node.status || "";
+    el.dataset.tip = node.title || "";
+    el.dataset.tipAction = "";
+    el.removeAttribute("title");
+    const calls = toolCount(node);
+    const stateText = node.goal ? (view.running ? "调研中" : "已结束") : erroneous ? "存在错误" : pending ? "待分配" : (STATUS[node.status] || "研究任务");
+    const content = document.createElement("span");
+    content.className = "node-content";
+    const category = document.createElement("span");
+    category.className = "node-kicker";
+    category.textContent = node.goal ? "研究主问题" : "研究任务";
+    const title = document.createElement("b");
+    title.className = "node-title";
+    title.textContent = node.title;
+    content.append(category,title);
+    if(node.goal){
+      const summary = document.createElement("small");
+      summary.className = "node-summary";
+      summary.textContent = taskNodes.length ? `已完成 ${resolvedCount} / ${taskNodes.length} 项任务` : (view.running ? "正在拆解研究问题" : "尚无子任务");
+      content.appendChild(summary);
+    }
+    const meta = document.createElement("small");
+    meta.className = "node-meta";
+    meta.textContent = node.goal ? (agentCount ? `${agentCount} 个研究智能体` : "等待任务分配") : `${calls} 次工具调用${node.children && node.children.length ? ` · ${node.children.length} 项子任务` : ""}`;
+    content.appendChild(meta);
+    const tab = document.createElement("span");
+    tab.className = "node-tab";
+    tab.textContent = stateText;
+    tab.setAttribute("aria-hidden", "true");
+    const identifier = document.createElement("span");
+    identifier.className = "node-id";
+    identifier.textContent = node.goal ? "Q" : String(node.id).toUpperCase();
+    identifier.setAttribute("aria-hidden", "true");
+    el.append(content,tab,identifier);
+    el.setAttribute("aria-label", `${node.title}，${stateText}，${node.goal ? `${resolvedCount} 项任务已完成，共 ${taskNodes.length} 项` : `${calls} 次工具调用`}`);
+    const amount = ringAmount(node, calls);
+    if(amount > 0){
+      const pad = 8;
+      const stroke = 2.8;
+      const size = nodeRadius * 2 + pad * 2;
+      const radius = nodeRadius + pad - stroke;
+      const center = size / 2;
+      const circ = 2 * Math.PI * radius;
+      const previous = haloSeen.has(node.id) ? haloSeen.get(node.id) : amount;
+      haloSeen.set(node.id, amount);
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("class", "halo");
+      svg.setAttribute("aria-hidden", "true");
+      svg.setAttribute("width", size);
+      svg.setAttribute("height", size);
+      svg.style.left = `${-pad}px`;
+      svg.style.top = `${-pad}px`;
+      const track = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      track.setAttribute("class", "track");
+      track.setAttribute("cx", center);
+      track.setAttribute("cy", center);
+      track.setAttribute("r", radius);
+      const arc = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      arc.setAttribute("class", "arc");
+      arc.setAttribute("cx", center);
+      arc.setAttribute("cy", center);
+      arc.setAttribute("r", radius);
+      arc.setAttribute("transform", `rotate(-90 ${center} ${center})`);
+      arc.dataset.circ = circ.toFixed(2);
+      const paint = value => {
+        if(value >= 1){
+          arc.style.strokeDasharray = "none";
+          arc.style.strokeLinecap = "butt";
+          return;
+        }
+        arc.style.strokeLinecap = "round";
+        arc.style.strokeDasharray = `${(value * circ).toFixed(2)} ${circ.toFixed(2)}`;
+      };
+      paint(previous);
+      svg.append(track, arc);
+      el.appendChild(svg);
+      if(Math.abs(previous - amount) > 0.004){
+        requestAnimationFrame(() => {
+          arc.style.transition = "stroke-dasharray .7s ease";
+          paint(amount);
+        });
+      }
+    }
+    if(nodeRadius < 72 && node.status){
+      const pip = document.createElement("i");
+      pip.className = `pip ${node.status}`;
+      el.appendChild(pip);
+    }
+    el.addEventListener("click", event => {
+      event.stopPropagation();
+      select(node.id, null);
+    });
+    world.appendChild(el);
+  });
+  spots.forEach((spot, index) => {
+    const step = focus.steps[index];
+    const el = document.createElement("button");
+    el.type = "button";
+    const delay = burstDelay(focus.id, index);
+    const flying = delay > -BURST_MS;
+    el.className = `satellite tool-${step.tool} tone-${focus.tone || "blue"}${step.error ? " bad" : ""}${activeStep === index ? " on" : ""}${flying ? " burst" : ""}`;
+    if(flying){
+      el.style.setProperty("--from-x", `${(focus.x - (spot.x + spot.w / 2)).toFixed(1)}px`);
+      el.style.setProperty("--from-y", `${(focus.y - (spot.y + spot.h / 2)).toFixed(1)}px`);
+      el.style.animationDelay = `${delay}ms`;
+    }
+    el.style.left = `${spot.x}px`;
+    el.style.top = `${spot.y}px`;
+    el.style.width = `${spot.w}px`;
+    el.style.height = `${spot.h}px`;
+    el.style.padding = `0 ${10 / scale}px`;
+    el.style.gap = `${6 / scale}px`;
+    el.style.borderRadius = `${spot.h / 2}px`;
+    el.style.fontSize = `${12 / scale}px`;
+    rememberTip(el, step);
+    const mark = document.createElement("i");
+    mark.className = "mark";
+    mark.style.width = mark.style.height = `${6 / scale}px`;
+      const text = document.createElement("span");
+      fillLabel(text, step.label || TOOL[step.tool] || step.tool);
+      el.append(mark, text);
+      if((step.count || 1) > 1){
+      const times = document.createElement("em");
+      times.textContent = `×${step.count}`;
+      times.style.fontSize = `${11 / scale}px`;
+      el.append(times);
+    }
+    el.addEventListener("click", event => {
+      event.stopPropagation();
+      select(focus.id, index);
+    });
+    world.appendChild(el);
+  });
+  syncLive(livePlaced, radiusOf);
+  ensureGoalTicker();
+  resumeChipTip();
+}
+
+function childState(node){
+  if(!node) return {state:"pending",label:"准备中"};
+  if(node.status === "resolved") return {state:"resolved",label:"已完成"};
+  if(node.status === "cancelled") return {state:"cancelled",label:"已取消"};
+  if(awaitingAgent(node)) return {state:"pending",label:view && view.running === false ? "待开始" : "准备中"};
+  if(node.status === "in_progress" || (node.live || []).length){
+    return view && view.running === false ? {state:"cancelled",label:"已停止"} : {state:"working",label:"工作中"};
+  }
+  return {state:"pending",label:view && view.running === false ? "待开始" : "准备中"};
+}
+
+function renderChildren(node){
+  const host = document.querySelector("#children");
+  const entries = (node.children || []).map(child => {
+    const match = nodeById(child.id);
+    return {id:child.id,title:child.title || "未命名任务",tone:(match && match.tone) || "pending",...childState(match)};
+  });
+  const signature = JSON.stringify([node.id,entries]);
+  if(host.dataset.signature === signature) return;
+  host.dataset.signature = signature;
+  host.replaceChildren();
+  if(!entries.length){
+    host.textContent = "没有子任务";
+    return;
+  }
+  entries.forEach((child,index) => {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = `child tone-${child.tone} state-${child.state}`;
+    row.style.setProperty("--child-delay", `${-index * .37}s`);
+    row.setAttribute("aria-label", `${child.title}，${child.label}`);
+    const icon = document.createElement("span");
+    icon.className = "child-icon";
+    icon.setAttribute("aria-hidden", "true");
+    if(child.state === "resolved") icon.innerHTML = '<svg viewBox="0 0 16 16"><path d="m4 8 2.5 2.5L12 5"/></svg>';
+    else if(child.state === "cancelled") icon.innerHTML = '<svg viewBox="0 0 16 16"><path d="M5 8h6"/></svg>';
+    const copy = document.createElement("span");
+    copy.className = "child-copy";
+    const title = document.createElement("span");
+    title.className = "child-title";
+    title.textContent = child.title;
+    const status = document.createElement("small");
+    status.className = "child-status";
+    status.textContent = child.label;
+    copy.append(title,status);
+    row.append(icon,copy);
+    row.addEventListener("click", () => select(child.id,null));
+    host.appendChild(row);
+  });
+}
+
+function clearSelection(){
+  selected = null;
+  selectionTransition = false;
+  activeStep = null;
+  chipHost = null;
+  revealedFor = null;
+  burstId = "";
+  document.querySelector("#back-goal").hidden = true;
+  document.querySelector("#kind").hidden = true;
+  document.querySelector("#kind").textContent = "";
+  document.querySelector("#title").textContent = "点选一个节点";
+  document.querySelector("#agents").hidden = true;
+  document.querySelector("#agents").textContent = "";
+  document.querySelector("#status").textContent = "—";
+  document.querySelector("#notes").textContent = "—";
+  document.querySelector("#children").textContent = "—";
+  delete document.querySelector("#children").dataset.signature;
+  document.querySelector("#steps").textContent = "—";
+  draw();
+}
+
+function select(id, stepIndex){
+  if(selected !== id) activeStep = null;
+  selectionTransition = selected !== id;
+  selected = id;
+  if(arguments.length > 1) activeStep = stepIndex;
+  const node = nodeById(id);
+  if(!node){
+    clearSelection();
+    return;
+  }
+  const step = activeStep != null && node.steps ? node.steps[activeStep] : null;
+  const goal = Boolean(node.goal);
+  document.querySelector("#back-goal").hidden = goal;
+  document.querySelector("#kind").hidden = !step;
+  document.querySelector("#agents").hidden = true;
+  document.querySelector("#status-section").hidden = goal;
+  document.querySelector("#notes-section").hidden = goal;
+  document.querySelector("#steps-section").hidden = goal;
+  document.querySelector("#kind").textContent = step ? (TOOL[step.tool] || "步骤") : "";
+  document.querySelector("#kind").style.color = step ? (TITLE_COLOR[step.tool] || "#e5e5e5") : "";
+  document.querySelector("#title").textContent = step ? (step.label || step.tool) : (node.title || "");
+  document.querySelector("#agents").textContent = "";
+  document.querySelector("#status").textContent = goal ? "" : (STATUS[node.status] || node.status || "—");
+  document.querySelector("#notes").textContent = node.notes || (goal ? "" : "还没有备注");
+  renderChildren(node);
+  const steps = document.querySelector("#steps");
+  steps.innerHTML = "";
+  if(!node.steps || !node.steps.length) steps.textContent = "没有工具步骤";
+  else node.steps.forEach((item, index) => {
+    const row = document.createElement("div");
+    row.className = `step${activeStep === index ? " on" : ""}`;
+    const who = document.createElement("small");
+    who.style.color = TITLE_COLOR[item.tool] || "#e5e5e5";
+    who.textContent = `${TOOL[item.tool] || "步骤"}${item.count > 1 ? " ×" + item.count : ""}${item.error ? " · 失败" : ""}`;
+    row.appendChild(who);
+    if(item.label){
+      const summary = document.createElement("b");
+      summary.textContent = item.label;
+      row.appendChild(summary);
+    }
+    row.appendChild(document.createTextNode(item.detail || ""));
+    row.addEventListener("click", () => select(id, index));
+    steps.appendChild(row);
+  });
+  draw();
+  const current = document.querySelector("#steps .step.on");
+  if(current) current.scrollIntoView({block: "nearest"});
+}
+
+function escapeHtml(value){
+  return String(value).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]));
+}
+
+function labelBefore(gap){
+  const pipe = gap.lastIndexOf("|");
+  if(pipe >= 0){
+    const picked = labelInside(gap.slice(pipe + 1));
+    return {keep: gap.slice(0, pipe + 1) + picked.keep, text: picked.text};
+  }
+  return labelInside(gap);
+}
+
+function labelInside(gap){
+  if(/来源\s*[:：]\s*$/.test(gap)) return {keep: gap.replace(/来源\s*[:：]\s*$/, ""), text: "来源"};
+  if(/\s*[—–]\s*$/.test(gap) || /\s+-\s+$/.test(gap)){
+    const nl = gap.lastIndexOf("\n");
+    const line = nl >= 0 ? gap.slice(nl + 1) : gap;
+    const head = nl >= 0 ? gap.slice(0, nl + 1) : "";
+    const num = line.match(/^\s*\d+\.\s+/);
+    const body = line.replace(/^\s*\d+\.\s+/, "").replace(/\s*[—–-]\s*$/, "").trim();
+    if(body && body.length <= 120) return {keep: head + (num ? num[0] : ""), text: body};
+  }
+  const delim = /[；;。！？\n：:（(，,、]/g;
+  let cut = 0;
+  let found;
+  while((found = delim.exec(gap))) cut = found.index + found[0].length;
+  const tail = gap.slice(cut).trim();
+  if(tail && tail.length <= 80) return {keep: gap.slice(0, cut), text: tail};
+  return {keep: gap.replace(/[ \t]*$/, ""), text: "来源"};
+}
+
+function foldUrls(source){
+  const found = [];
+  const re = /https?:\/\/[^\s<）)，。；、]+/g;
+  let match;
+  while((match = re.exec(source))){
+    if(match.index >= 2 && source[match.index - 2] === "]" && source[match.index - 1] === "(") continue;
+    const href = match[0].replace(/[.,;:]+$/, "");
+    found.push({start: match.index, end: match.index + match[0].length, href, trailing: match[0].slice(href.length)});
+  }
+  if(!found.length) return source;
+  let out = "";
+  let cursor = 0;
+  for(const item of found){
+    const picked = labelBefore(source.slice(cursor, item.start));
+    const href = item.href.replace(/\(/g, "%28").replace(/\)/g, "%29");
+    let text = picked.text.replace(/[\[\]*]/g, "").replace(/\|/g, "").trim();
+    if(!text || text === "来源" || /^https?:\/\//i.test(text)) text = linkHost(href) || "原文";
+    out += picked.keep + "[" + text + "](" + href + ")" + item.trailing;
+    cursor = item.end;
+  }
+  return out + source.slice(cursor);
+}
+
+function linkHost(href){
+  try { return new URL(href).host.replace(/^www\./, ""); }
+  catch(error){ return ""; }
+}
+
+function inlineMarkdown(source){
+  const text = String(source);
+  let html = "";
+  let i = 0;
+  while(i < text.length){
+    if(text.startsWith("**", i)){
+      const end = text.indexOf("**", i + 2);
+      if(end !== -1){
+        html += "<strong>" + inlineMarkdown(text.slice(i + 2, end)) + "</strong>";
+        i = end + 2;
+        continue;
+      }
+    }
+    if(text[i] === "`"){
+      const end = text.indexOf("`", i + 1);
+      if(end > i + 1){
+        html += "<code>" + escapeHtml(text.slice(i + 1, end)) + "</code>";
+        i = end + 1;
+        continue;
+      }
+    }
+    const link = /^\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/.exec(text.slice(i));
+    if(link){
+      const host = linkHost(link[2]);
+      html += '<a href="' + escapeHtml(link[2]) + '" target="_blank" rel="noopener noreferrer"' + (host ? ' title="' + escapeHtml(host) + '"' : "") + ">" + inlineMarkdown(link[1]) + "</a>";
+      i += link[0].length;
+      continue;
+    }
+    const url = /^https?:\/\/[^\s<）)，。；、]+/.exec(text.slice(i));
+    if(url){
+      const href = url[0].replace(/[.,;:]+$/, "");
+      html += '<a href="' + escapeHtml(href) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(href) + "</a>" + escapeHtml(url[0].slice(href.length));
+      i += url[0].length;
+      continue;
+    }
+    html += escapeHtml(text[i]);
+    i += 1;
+  }
+  return html;
+}
+
+function joinParagraph(parts){
+  return parts.reduce((acc, part) => {
+    if(!acc) return part;
+    const cjk = /[\u3400-\u9fff]$/.test(acc) && /^[\u3400-\u9fff]/.test(part);
+    return acc + (cjk ? "" : " ") + part;
+  }, "");
+}
+
+function splitCells(line){
+  return line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(cell => cell.trim());
+}
+
+function isTableRule(line){
+  return /^\|?\s*:?-{1,}:?\s*(\|\s*:?-{1,}:?\s*)+\|?$/.test(line.trim());
+}
+
+function tableAlign(cell){
+  const text = cell.trim();
+  if(text.startsWith(":") && text.endsWith(":")) return "center";
+  if(text.endsWith(":")) return "right";
+  return "";
+}
+
+function chapterTitle(body){
+  if(/Completeness Check|Correctness Check|Deliverable Check/.test(body)) return "证据核对";
+  const scope = /^Scope:\s*([^\n]+)/m.exec(body);
+  if(scope){
+    let title = scope[1].split(/[。.]/)[0];
+    title = title.replace(/^研究\s*/, "").replace(/，采用[\s\S]*$/, "").replace(/，方法[\s\S]*$/, "").replace(/。$/, "").trim();
+    const lead = title.split(/[：:]/)[0].trim();
+    if(lead.length >= 6 && lead.length <= 28) return lead;
+    if(title.length >= 6 && title.length <= 28) return title;
+  }
+  const head = /^\*\*\d+\.\s+([^*\n]+)\*\*\s*$/m.exec(body) || /^【\d+\.\s+([^】\n]+)】\s*$/m.exec(body);
+  if(head) return head[1].replace(/（RETRIEVED[^）]*）/g, "").trim();
+  const plain = /^\d+\.\s+([^：:—\n]{2,22})/m.exec(body);
+  if(plain) return plain[1].trim();
+  return "研究发现";
+}
+
+function scopeLede(body){
+  const found = /^Scope:\s*([^\n]+)/m.exec(body);
+  if(!found) return "";
+  let text = found[1].split(/。/)[0];
+  text = text.replace(/采用[\s\S]*$/, "").replace(/方法[:：][\s\S]*$/, "").replace(/产出[\s\S]*$/, "").trim();
+  if(!text || text.length > 90) return "";
+  return text.endsWith("。") ? text : text + "。";
+}
+
+function cleanEvidenceLine(line){
+  const trimmed = line.trim();
+  if(/\/Users\/|sandbox\/worktree|产出文件/.test(trimmed)) return null;
+  const evidence = /^-\s+(https?:\/\/\S+(?:\s*(?:与|and)\s*https?:\/\/\S+)*)\s*[—–-]\s*(.+)$/.exec(trimmed);
+  if(!evidence) return line;
+  const desc = evidence[2].replace(/\s*quality:\s*\S+(?:\s*[（(][^）)]*[）)])?/i, "").replace(/[\[\]]/g, "").trim() || "来源";
+  const urls = evidence[1].match(/https?:\/\/\S+/g).map(href => href.replace(/[，,;；。]+$/, ""));
+  return urls.map(href => "- [" + desc + "](" + href + ")").join("\n");
+}
+
+function cleanChapter(body){
+  let text = String(body || "").replace(/\r\n/g, "\n").trim();
+  if(!text || (/^\[NOTE:/.test(text) && text.length < 900)) return "";
+  text = text.replace(/\[NOTE:[^\]]*\]\s*/g, "");
+  text = text.replace(/\s*quality:\s*[A-Za-z/]+(?:\s*[（(][^）)\n]*[）)])?/gi, "");
+  const title = chapterTitle(text);
+  const lede = scopeLede(text);
+  text = text.replace(/^Scope:\s*[^\n]*\n*/m, "");
+  text = text.replace(/^Findings:\s*\n*/m, "");
+  text = text.replace(/（RETRIEVED[^）]*）/g, "");
+  text = text.replace(/^\*\*(\d+\.\s*[^*]+)\*\*\s*$/gm, "### $1");
+  text = text.replace(/^【(\d+\.\s*[^】]+)】\s*$/gm, "### $1");
+  text = text.replace(/^Evidence:\s*$/m, "### 来源");
+  text = text.replace(/^Confidence:\s*/m, "> **判断** ");
+  text = text.replace(/^Unresolved:\s*$/m, "### 尚未确认");
+  text = text.replace(/^Disconfirming:\s*/m, "> **相反证据** ");
+  text = text.replace(/^Conflicts:\s*/m, "> **分歧** ");
+  text = text.replace(/^##\s+Completeness Check\s*$/m, "### 完整性");
+  text = text.replace(/^##\s+Correctness Check\s*$/m, "### 正确性");
+  text = text.replace(/^##\s+Precision Issues\s*$/m, "### 精度");
+  text = text.replace(/^##\s+Discipline Issues[^\n]*$/m, "### 写法");
+  text = text.replace(/^##\s+Deliverable Check\s*$/m, "### 交付");
+  if(title && title !== "研究发现"){
+    const escaped = title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    text = text.replace(new RegExp("^###\\s+(?:\\d+\\.\\s+)?" + escaped + "\\s*$", "m"), "");
+  }
+  const lines = text.split("\n").map(cleanEvidenceLine).filter(line => line !== null);
+  text = lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  if(!text) return "";
+  return "## " + title + "\n\n" + (lede ? lede + "\n\n" : "") + text;
+}
+
+function prepareUserReport(source, title){
+  const raw = String(source || "").replace(/\r\n/g, "\n");
+  const chapters = [];
+  const reports = /<report\b([^>]*)>([\s\S]*?)<\/report>/gi;
+  let match;
+  while((match = reports.exec(raw))){
+    const status = (/\bstatus="([^"]*)"/.exec(match[1] || "") || [])[1] || "";
+    if(status === "incomplete") continue;
+    const chapter = cleanChapter(match[2]);
+    if(chapter) chapters.push(chapter);
+  }
+  let body = chapters.length ? chapters.join("\n\n") : raw.replace(/^##\s+Best-effort collected results[\s\S]*?(?=\n#|\n<report|$)/, "").trim();
+  if(chapters.length) body = body.replace(/^#\s+/gm, "## ");
+  const heading = String(title || "").trim();
+  const usable = heading && heading !== "正在读取" && heading !== "这份运行没有星图";
+  if(chapters.length && usable) body = "# " + heading + "\n\n" + body;
+  return body;
+}
+
+function leadBold(item){
+  if(/^\*\*/.test(item) || /^\[/.test(item)) return item;
+  const labeled = /^(.{2,18}?)([：:])/.exec(item);
+  if(labeled && !/https?:/.test(labeled[1])) return "**" + labeled[1] + "**" + labeled[2] + item.slice(labeled[0].length);
+  const cjk = /^([\u3400-\u9fff]{2,4})/.exec(item);
+  if(cjk && item.length > cjk[1].length + 8) return "**" + cjk[1] + "**" + item.slice(cjk[1].length);
+  return item;
+}
+
+function splitLongItem(item){
+  const marks = item.split("；").length - 1;
+  if(item.length < 220 || marks < 2) return [item];
+  return item.split("；").map(part => part.trim()).filter(Boolean);
+}
+
+function plainLength(cell){
+  return String(cell || "").replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/[*`]/g, "").trim().length;
+}
+
+function columnKind(header, samples){
+  const name = String(header || "").replace(/\*/g, "").replace(/\s+/g, "");
+  const longest = Math.max(name.length, ...samples.map(plainLength));
+  if(/来源|出处|链接|参考/.test(name)) return "source";
+  if(/^(日期|时间)$/.test(name)) return longest <= 28 ? "date" : "text";
+  const dated = samples.filter(cell => /^\d{4}-\d{2}-\d{2}$/.test(String(cell || "").trim())).length;
+  if(name.length <= 4 && longest <= 28 && dated >= Math.max(1, samples.filter(Boolean).length * 0.6)) return "date";
+  if(longest > 0 && longest <= 8) return "label";
+  return "text";
+}
+
+function cellNumeric(cell){
+  const text = String(cell || "").replace(/\*\*/g, "").trim();
+  if(!text || text.length > 28) return false;
+  const digits = (text.match(/\d/g) || []).length;
+  return digits > 0 && !/[\u3400-\u9fff]{3,}/.test(text) && !/[A-Za-z]{5,}/.test(text);
+}
+
+function tableWidthPlan(headers,rows,kinds){
+  const measure = cell => {
+    const text = String(cell || "").replace(/\[([^\]]*)\]\([^)]*\)/g,"$1").replace(/[*`]/g,"");
+    return [...text].reduce((width,char) => width + (char === " " ? 3.5 : char.codePointAt(0) > 255 ? 14 : 7),0);
+  };
+  const profiles = headers.map((header,index) => {
+    const longest = Math.max(measure(header),...rows.map(row => measure(row[index])));
+    const clamp = (min,value,max) => Math.max(min,Math.min(max,Math.ceil(value)));
+    switch(kinds[index]){
+      case "source": return {minimum:160,weight:clamp(160,longest * .6 + 28,232)};
+      case "date": return {minimum:136,weight:clamp(136,longest * .65 + 28,208)};
+      case "num": {
+        const width = clamp(104,longest + 28,224);
+        return {minimum:width,weight:width};
+      }
+      case "label": return {minimum:104,weight:clamp(104,longest + 28,168)};
+      default: return {minimum:180,weight:clamp(180,longest * .55 + 28,360)};
+    }
+  });
+  const total = profiles.reduce((sum,column) => sum + column.weight,0);
+  let assigned = 0;
+  const columns = profiles.map((column,index) => {
+    const percentage = index === profiles.length - 1 ? Number((100 - assigned).toFixed(3)) : Number((column.weight / total * 100).toFixed(3));
+    assigned += percentage;
+    return percentage;
+  });
+  // With a fixed table layout, this floor keeps every column at or above its
+  // readable minimum. Narrow containers scroll instead of shrinking the cells.
+  const minimum = Math.ceil(Math.max(...profiles.map((column,index) => column.minimum * 100 / columns[index])));
+  return {minimum,columns};
+}
+
+function renderMarkdown(source){
+  source = foldUrls(source);
+  const lines = String(source).replace(/\r\n/g, "\n").split("\n");
+  const blocks = [];
+  let i = 0;
+  while(i < lines.length){
+    const trimmed = lines[i].trim();
+    if(!trimmed){ i += 1; continue; }
+    const heading = /^(#{1,6})\s+(.+)$/.exec(trimmed);
+    if(heading){
+      const level = heading[1].length;
+      blocks.push("<h" + level + ">" + inlineMarkdown(heading[2]) + "</h" + level + ">");
+      i += 1;
+      continue;
+    }
+    if(/^---+$/.test(trimmed) || /^\*\*\*+$/.test(trimmed)){
+      blocks.push("<hr>");
+      i += 1;
+      continue;
+    }
+    if(trimmed.startsWith("```")){
+      const code = [];
+      i += 1;
+      while(i < lines.length && !lines[i].trim().startsWith("```")){
+        code.push(lines[i]);
+        i += 1;
+      }
+      if(i < lines.length) i += 1;
+      blocks.push("<pre><code>" + escapeHtml(code.join("\n")) + "</code></pre>");
+      continue;
+    }
+    if(trimmed.startsWith(">")){
+      const paragraphs = [];
+      let current = [];
+      while(i < lines.length && lines[i].trim().startsWith(">")){
+        const content = lines[i].trim().replace(/^>\s?/, "");
+        if(!content){
+          if(current.length) paragraphs.push(joinParagraph(current));
+          current = [];
+        } else current.push(content);
+        i += 1;
+      }
+      if(current.length) paragraphs.push(joinParagraph(current));
+      blocks.push("<blockquote>" + paragraphs.map(part => "<p>" + inlineMarkdown(part) + "</p>").join("") + "</blockquote>");
+      continue;
+    }
+    if(trimmed.startsWith("|") && i + 1 < lines.length && isTableRule(lines[i + 1])){
+      const head = splitCells(trimmed);
+      const align = splitCells(lines[i + 1]).map(tableAlign);
+      i += 2;
+      const rows = [];
+      while(i < lines.length && lines[i].trim().startsWith("|")){
+        const cells = splitCells(lines[i]);
+        rows.push(head.map((_,index) => index === head.length - 1 ? cells.slice(index).join(" | ") : (cells[index] || "")));
+        i += 1;
+      }
+      const kinds = head.map((header, index) => columnKind(header, rows.map(row => row[index] || "")));
+      const numeric = head.map((_, index) => {
+        if(["date","source"].includes(kinds[index]) || /^(日期|时间)$/.test(head[index].replace(/[*\s]/g,""))) return false;
+        const samples = rows.map(row => row[index] || "").filter(Boolean);
+        if(!samples.length) return false;
+        const hits = samples.filter(cellNumeric).length;
+        return hits / samples.length >= 0.6;
+      });
+      const columnTypes = kinds.map((kind,index) => numeric[index] ? "num" : kind);
+      const layout = tableWidthPlan(head,rows,columnTypes);
+      const aligned = (tag, cell, index) => {
+        const kind = columnTypes[index] || "text";
+        const alignment = align[index] || (numeric[index] ? "right" : "");
+        const style = alignment ? ' style="text-align:' + alignment + '"' : "";
+        return "<" + tag + ' class="' + kind + '"' + style + ">" + inlineMarkdown(cell) + "</" + tag + ">";
+      };
+      const th = head.map((cell, index) => aligned("th", cell, index)).join("");
+      const body = rows.map(row => "<tr>" + row.map((cell, index) => aligned("td", cell, index)).join("") + "</tr>").join("");
+      const columns = layout.columns.map(width => '<col style="width:' + width + '%">').join("");
+      const name = escapeHtml("表格：" + head.join("、"));
+      blocks.push('<div class="table-wrap" role="region" aria-label="' + name + '" tabindex="0"><table style="min-width:' + layout.minimum + 'px"><colgroup>' + columns + '</colgroup><thead><tr>' + th + "</tr></thead><tbody>" + body + "</tbody></table></div>");
+      continue;
+    }
+    if(/^[-*]\s+/.test(trimmed)){
+      const items = [];
+      while(i < lines.length && /^[-*]\s+/.test(lines[i].trim())){
+        const raw = lines[i].trim().replace(/^[-*]\s+/, "");
+        splitLongItem(raw).forEach(part => {
+          const only = /^\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)$/.exec(part.trim());
+          if(only){
+            const host = linkHost(only[2]);
+            items.push('<li class="source"><a class="bookmark" href="' + escapeHtml(only[2]) + '" target="_blank" rel="noopener noreferrer"><b>' + inlineMarkdown(only[1]) + "</b>" + (host ? "<small>" + escapeHtml(host) + "</small>" : "") + "</a></li>");
+            return;
+          }
+          items.push("<li>" + inlineMarkdown(leadBold(part)) + "</li>");
+        });
+        i += 1;
+      }
+      blocks.push("<ul>" + items.join("") + "</ul>");
+      continue;
+    }
+    if(/^\d+\.\s+/.test(trimmed)){
+      const items = [];
+      while(i < lines.length && /^\d+\.\s+/.test(lines[i].trim())){
+        items.push("<li>" + inlineMarkdown(lines[i].trim().replace(/^\d+\.\s+/, "")) + "</li>");
+        i += 1;
+      }
+      blocks.push("<ol>" + items.join("") + "</ol>");
+      continue;
+    }
+    const para = [trimmed];
+    i += 1;
+    while(i < lines.length){
+      const next = lines[i].trim();
+      if(!next || /^(#{1,6})\s+/.test(next) || /^(---|```)/.test(next) || next.startsWith(">") || next.startsWith("|") || /^[-*]\s+/.test(next) || /^\d+\.\s+/.test(next)) break;
+      para.push(next);
+      i += 1;
+    }
+    blocks.push("<p>" + inlineMarkdown(joinParagraph(para)) + "</p>");
+  }
+  return blocks.join("");
+}
+
+function closeReport(){
+  const modal = document.querySelector("#modal");
+  if(!modal.classList.contains("open")) return;
+  modal.classList.remove("open");
+  document.querySelector("#open-report").focus();
+}
+
+async function openReport(){
+  const body = document.querySelector("#report-body");
+  const researchTitle = (view && view.goal && view.goal.title) || document.querySelector("#goal-text").textContent;
+  document.querySelector("#report-title").textContent = researchTitle && !["正在读取","这份运行没有星图"].includes(researchTitle) ? researchTitle : "研究报告";
+  body.innerHTML = '<p class="report-status">正在读取报告</p>';
+  body.scrollTop = 0;
+  document.querySelector("#modal").classList.add("open");
+  document.querySelector("#close-report").focus();
+  try {
+    const response = await fetch(endpoint("report"));
+    const text = await response.text();
+    if(!response.ok){
+      body.innerHTML = '<p class="report-status">' + escapeHtml(text || "这份运行还没有报告。") + "</p>";
+      return;
+    }
+    body.innerHTML = renderMarkdown(prepareUserReport(text,researchTitle));
+    body.scrollTop = 0;
+  } catch (error) {
+    body.innerHTML = '<p class="report-status">报告没有读出来。刷新后再打开一次。</p>';
+  }
+}
+
+let tipTimer = 0;
+let tipAnchor = null;
+const pointer = {x: 0, y: 0, inside: false};
+
+function hideChipTip(){
+  clearTimeout(tipTimer);
+  tipTimer = 0;
+  tipAnchor = null;
+  document.querySelector("#chip-tip").classList.remove("show");
+}
+
+function placeChipTip(anchor){
+  const tip = document.querySelector("#chip-tip");
+  const canvas = document.querySelector("#canvas").getBoundingClientRect();
+  const host = anchor.getBoundingClientRect();
+  const box = tip.getBoundingClientRect();
+  const gap = 8;
+  let left = host.left + host.width / 2 - box.width / 2;
+  left = Math.max(canvas.left + 12, Math.min(left, canvas.right - box.width - 12));
+  let top = host.top - box.height - gap;
+  if(top < canvas.top + 8) top = host.bottom + gap;
+  if(top + box.height > canvas.bottom - 8) top = Math.max(canvas.top + 8, host.top - box.height - gap);
+  tip.style.left = `${Math.round(left)}px`;
+  tip.style.top = `${Math.round(top)}px`;
+}
+
+function wantsTip(el){
+  const body = (el.dataset.tip || "").trim();
+  if(!body) return false;
+  const text = el.querySelector(".node-title") || el.querySelector("span, b");
+  if(text && (text.scrollWidth > text.clientWidth + 1 || text.scrollHeight > text.clientHeight + 1)) return true;
+  const visible = (text ? text.textContent : "").replace(/\s+/g, "");
+  return body.replace(/\s+/g, "").length > visible.length;
+}
+
+function openChipTip(el){
+  if(!el.isConnected || !wantsTip(el)){
+    hideChipTip();
+    return;
+  }
+  const tip = document.querySelector("#chip-tip");
+  const action = el.dataset.tipAction || "";
+  const body = el.dataset.tip || "";
+  const frame = document.querySelector("#canvas").getBoundingClientRect();
+  tip.style.maxWidth = `${Math.max(180, Math.min(300, frame.width - 24))}px`;
+  tip.replaceChildren();
+  tip.style.setProperty("--mark", getComputedStyle(el).getPropertyValue("--mark").trim() || "#9ec9d6");
+  if(action){
+    const lead = document.createElement("b");
+    lead.textContent = action;
+    tip.append(lead);
+  }
+  const text = document.createElement("span");
+  text.textContent = body;
+  tip.append(text);
+  tipAnchor = el;
+  placeChipTip(el);
+  tip.classList.add("show");
+}
+
+function scheduleChipTip(el, delay){
+  clearTimeout(tipTimer);
+  tipAnchor = el;
+  tipTimer = setTimeout(() => openChipTip(el), delay);
+}
+
+function resumeChipTip(){
+  if(!pointer.inside) return;
+  const hit = document.elementFromPoint(pointer.x, pointer.y);
+  const el = hit && hit.closest && hit.closest("button.satellite, button.node");
+  if(el) scheduleChipTip(el, 160);
+}
+
+function resetView(){
+  glideToken += 1;
+  userMoved = false;
+  holdScale = false;
+  revealedFor = selected;
+  fit();
+  fittedKey = boundsKey();
+  draw();
+}
+
+function backToGoal(){
+  select("goal", null);
+  resetView();
+}
+document.querySelector("#back-goal").addEventListener("click", backToGoal);
+document.querySelector("#open-report").addEventListener("click", openReport);
+document.querySelector("#close-report").addEventListener("click", closeReport);
+document.querySelector("#modal").addEventListener("click", event => { if(event.target.id === "modal") closeReport(); });
+document.addEventListener("keydown", event => { if(event.key === "Escape") closeReport(); });
+document.querySelector("#zoom-in").addEventListener("click", () => {userMoved = true; holdScale = true; scale = Math.min(2, scale + 0.1); draw()});
+document.querySelector("#zoom-out").addEventListener("click", () => {userMoved = true; holdScale = true; scale = Math.max(0.12, scale - 0.1); draw()});
+document.querySelector("#zoom-fit").addEventListener("click", backToGoal);
+window.addEventListener("resize", () => {
+  if(!view || !view.ok || holdScale) return;
+  fit();
+  draw();
+});
+let drag = null;
+let suppressClick = false;
+const canvasEl = document.querySelector("#canvas");
+canvasEl.addEventListener("pointerover", event => {
+  pointer.inside = true;
+  pointer.x = event.clientX;
+  pointer.y = event.clientY;
+  const el = event.target.closest("button.satellite, button.node");
+  if(!el){
+    if(tipAnchor) hideChipTip();
+    return;
+  }
+  if(el === tipAnchor && document.querySelector("#chip-tip").classList.contains("show")) return;
+  scheduleChipTip(el, 220);
+});
+canvasEl.addEventListener("pointermove", event => {
+  pointer.x = event.clientX;
+  pointer.y = event.clientY;
+  if(tipAnchor && document.querySelector("#chip-tip").classList.contains("show")) placeChipTip(tipAnchor);
+});
+canvasEl.addEventListener("pointerout", event => {
+  const from = event.target.closest("button.satellite, button.node");
+  if(!from || (event.relatedTarget && from.contains(event.relatedTarget))) return;
+  if(!tipAnchor || tipAnchor === from) hideChipTip();
+});
+canvasEl.addEventListener("pointerleave", () => {
+  pointer.inside = false;
+  hideChipTip();
+});
+canvasEl.addEventListener("focusin", event => {
+  const el = event.target.closest("button.satellite, button.node");
+  if(el) scheduleChipTip(el, 0);
+});
+canvasEl.addEventListener("focusout", event => {
+  const el = event.target.closest("button.satellite, button.node");
+  if(el && (!tipAnchor || tipAnchor === el)) hideChipTip();
+});
+canvasEl.addEventListener("pointerdown", () => hideChipTip(), true);
+canvasEl.addEventListener("pointerdown", event => {
+  if(event.button !== 0) return;
+  if(event.target.closest(".node, .satellite, .zoom, .legend")) return;
+  drag = {id: event.pointerId, x: event.clientX, y: event.clientY, panX, panY, moved: false};
+  canvasEl.setPointerCapture(event.pointerId);
+});
+canvasEl.addEventListener("pointermove", event => {
+  if(!drag || event.pointerId !== drag.id) return;
+  const dx = event.clientX - drag.x;
+  const dy = event.clientY - drag.y;
+  if(!drag.moved && Math.hypot(dx, dy) < 4) return;
+  drag.moved = true;
+  glideToken += 1;
+  canvasEl.classList.add("panning");
+  panX = drag.panX + dx;
+  panY = drag.panY + dy;
+  userMoved = true;
+  holdScale = true;
+  applyTransform();
+});
+function endDrag(event){
+  if(!drag || event.pointerId !== drag.id) return;
+  if(drag.moved) suppressClick = true;
+  drag = null;
+  canvasEl.classList.remove("panning");
+}
+canvasEl.addEventListener("pointerup", endDrag);
+canvasEl.addEventListener("pointercancel", endDrag);
+canvasEl.addEventListener("wheel", event => {
+  event.preventDefault();
+  glideToken += 1;
+  const rect = canvasEl.getBoundingClientRect();
+  const sx = event.clientX - rect.left;
+  const sy = event.clientY - rect.top;
+  if(event.ctrlKey || event.metaKey){
+    const next = Math.max(0.12, Math.min(2, scale * (event.deltaY < 0 ? 1.08 : 0.92)));
+    const wx = (sx - panX) / scale;
+    const wy = (sy - panY) / scale;
+    scale = next;
+    panX = sx - wx * scale;
+    panY = sy - wy * scale;
+  } else {
+    panX -= event.deltaX;
+    panY -= event.deltaY;
+  }
+  userMoved = true;
+  holdScale = true;
+  applyTransform();
+}, {passive: false});
+canvasEl.addEventListener("click", event => {
+  if(suppressClick){ suppressClick = false; return; }
+  if(event.target.closest(".node, .satellite, .zoom, .legend")) return;
+  if(selected) clearSelection();
+});
+
+async function refresh(){
+  try {
+    const payload = await fetch(endpoint("view")).then(response => response.json());
+    const structural = !view || payload.version !== view.version || payload.ok !== view.ok || payload.message !== view.message;
+    const activity = liveKey(payload) !== liveKey(view) || sizeKey(payload) !== sizeKey(view);
+    view = payload;
+    if(selected){
+      const parent = nodeById(selected);
+      if(parent) renderChildren(parent);
+    }
+    const key = view.ok ? boundsKey() : "";
+    const refit = Boolean(key && key !== fittedKey);
+    if(refit){
+      if(!userMoved) fit();
+      fittedKey = key;
+    }
+    if(structural || refit){
+      if(selected && !(view.nodes || []).some(node => node.id === selected)) selected = null;
+      if(selected) select(selected);
+      else draw();
+    } else if(activity){
+      draw();
+    }
+  } catch (error) {
+    view = {ok:false, message:"星图服务没有返回数据。"};
+    draw();
+  }
+}
+refresh();
+setInterval(refresh, 1000);
+</script>
+</body>
+</html>

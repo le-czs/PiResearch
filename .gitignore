@@ -1,0 +1,18 @@
+# Local environments and caches. Nested folders keep their own rules.
+.venv/
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.py[cod]
+.DS_Store
+node_modules/
+
+# Local research sessions, trajectories, reports and benchmark outputs.
+/runs/
+
+.env
+.env.*
+!.env.example
+!.env.*.example
+!**/.env.example
+!**/.env.*.example

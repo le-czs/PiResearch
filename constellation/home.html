@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PiResearch</title>
+<style>
+:root{--text:#f4f4f5;--muted:#8a8a8a;--line:#242424;--sans:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#000;color:var(--text);font-family:var(--sans)}
+body{background:#000 radial-gradient(#1c1c1c 1px,transparent 1px);background-size:22px 22px}
+button,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:inherit}
+.top{display:flex;align-items:center;height:64px;padding:0 28px}
+.brand{color:#f4f4f5;text-decoration:none;font-family:"Savoye LET","Snell Roundhand","Segoe Script","Bradley Hand",cursive;font-size:36px;font-weight:400;line-height:1;letter-spacing:.01em}
+.brand:hover{color:#fff}
+.page{width:min(1120px,calc(100% - 48px));margin:0 auto;padding:28px 0 80px}
+@property --sheen{syntax:"<angle>";inherits:false;initial-value:0deg}
+@keyframes sheen{to{--sheen:360deg}}
+.ask{width:min(760px,100%);margin:18px auto 8px}
+.composer{position:relative;padding:1.5px;border-radius:22px;background:#2a2a2a}
+.composer:focus-within{background:conic-gradient(from var(--sheen),#5ce1ff,#6d9cff,#c084fc,#ff6eb4,#ffd36a,#7dffb3,#5ce1ff);box-shadow:0 0 28px #6d9cff66,0 0 56px #ff6eb433;animation:sheen 2.8s linear infinite}
+.composer.launching{animation:launch-border .46s ease-out both}
+@keyframes launch-border{0%{box-shadow:0 0 28px #6d9cff66,0 0 56px #ff6eb433}55%{box-shadow:0 0 12px #6d9cff44}100%{box-shadow:0 0 0 transparent;background:#2a2a2a}}
+.launch-spark{position:absolute;z-index:2;width:5px;height:5px;border-radius:50%;background:var(--spark-color,#8fe9ff);box-shadow:0 0 10px currentColor;pointer-events:none;animation:spark-gather .42s cubic-bezier(.45,0,.16,1) forwards}
+@keyframes spark-gather{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}18%{opacity:1}80%{opacity:1}100%{opacity:0;transform:translate(calc(var(--dx) - 50%),calc(var(--dy) - 50%)) scale(.3)}}
+textarea{display:block;width:100%;min-height:108px;margin:0;padding:18px 64px 18px 18px;border:0;border-radius:20px;background:#141414;color:#f5f5f5;line-height:1.55;resize:vertical}
+.composer:focus-within textarea{background:#262626}
+textarea::placeholder{color:#6e6e6e}
+textarea:focus{outline:none}
+.launch{position:absolute;right:12px;bottom:12px;width:44px;height:44px;display:grid;place-items:center;padding:0;border:1px solid #3a3a3a;border-radius:50%;background:#1c1c1c;color:#fff}
+.composer.launching .launch{z-index:3;opacity:1;animation:launch-ignite .46s ease-out both}
+@keyframes launch-ignite{0%,45%{transform:scale(1)}72%{transform:scale(1.16);background:#f4f4f5;color:#111;box-shadow:0 0 0 9px #7ee0ef22,0 0 28px #7ee0ef88}100%{transform:scale(1);background:#f4f4f5;color:#111;box-shadow:0 0 0 18px transparent}}
+.launch svg{width:22px;height:22px;overflow:visible}
+.launch .flame{fill:#ff8a2a;opacity:0;transform-origin:16px 26px}
+.launch:hover,.launch:focus-visible{background:#f4f4f5;color:#111;border-color:#fff;box-shadow:0 0 0 6px #ffffff14,0 12px 28px #ff7a1a66}
+.launch:hover .flame,.launch:focus-visible .flame{opacity:1}
+.launch:hover svg,.launch:focus-visible svg{transform:translateY(-2px)}
+.launch:disabled{opacity:.45;cursor:default;box-shadow:none}
+.launch:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.ask-error{min-height:22px;margin:10px 4px 0;color:#ffb4b8;font-size:13px}
+.ask-error[hidden]{display:none}
+.group{margin-top:36px}
+.group h2{margin:0 0 14px;color:#a3a3a3;font-size:13px;font-weight:600;letter-spacing:.08em}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px 16px}
+.card{position:relative;min-width:0}
+.card-link{display:block;color:inherit;text-decoration:none}
+.thumb-frame{position:relative;display:block}
+.forget{position:absolute;top:8px;right:8px;z-index:6;display:grid;place-items:center;width:22px;height:22px;margin:0;padding:0;border:0;border-radius:6px;background:rgba(12,12,12,.55);color:#ff4d4d;cursor:pointer;opacity:0;pointer-events:none}
+.forget svg{display:block;width:13px;height:13px}
+.card:hover .forget,.card:focus-within .forget{opacity:1;pointer-events:auto}
+.forget:hover,.forget:focus-visible{color:#ff2a2a;background:rgba(48,10,10,.82)}
+@media(hover:none){.forget{opacity:1;pointer-events:auto}}
+.thumb-frame.live{position:relative;padding:2px;border-radius:16px;background:#1a1a1a;overflow:hidden}
+.thumb-frame.live::before{content:"";position:absolute;left:-60%;top:-90%;z-index:0;width:220%;height:280%;background:conic-gradient(from 0deg,transparent 0deg,transparent 250deg,#7ee0ef55 300deg,#7ee0ef 332deg,#fff 356deg,transparent 360deg);animation:orbit 2.4s linear infinite}
+@keyframes orbit{to{transform:rotate(360deg)}}
+.thumb{position:relative;z-index:1;display:flex;flex-direction:column;aspect-ratio:3/2;overflow:hidden;border:1px solid #1e1e1e;border-radius:16px;background:radial-gradient(ellipse at 50% 40%,#121212 0%,#050505 70%,#000 100%)}
+.thumb svg{display:block;flex:1 1 auto;min-height:0;width:100%;height:0}
+.thumb-frame.live .thumb{border-color:transparent}
+.caption{position:relative;z-index:3;flex:none;padding:16px 14px 12px;background:linear-gradient(to top,rgba(0,0,0,.92) 0%,rgba(0,0,0,.78) 58%,rgba(0,0,0,0) 100%);pointer-events:none}
+.live-dot{position:absolute;top:10px;left:10px;z-index:4;width:8px;height:8px;border-radius:50%;background:#7ee0ef;box-shadow:0 0 0 0 #7ee0ef88;animation:pulse 1.6s ease-out infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.card b{display:block;margin:0;overflow:hidden;color:#fff;font-size:15px;font-weight:620;line-height:1.35;white-space:nowrap;text-overflow:ellipsis}
+.card small{display:block;margin:0 0 4px;color:rgba(255,255,255,.68);font-size:12px;font-weight:500;line-height:1.3}
+@property --frost{syntax:"<length>";inherits:false;initial-value:0px}
+.zoom-shade{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,0);--frost:0px;backdrop-filter:blur(var(--frost)) saturate(1.2);-webkit-backdrop-filter:blur(var(--frost)) saturate(1.2);pointer-events:auto;transition:--frost .68s ease,background .68s ease}
+.zoom-shade.on{--frost:22px;background:rgba(0,0,0,.16)}
+.zoom-ghost{position:fixed;z-index:41;display:block;margin:0;overflow:hidden;pointer-events:none;transform-origin:center center;transition:transform .68s cubic-bezier(.22,.85,.28,1),border-radius .68s cubic-bezier(.22,.85,.28,1),background .68s ease,border-color .68s ease,box-shadow .68s ease}
+.zoom-ghost svg{position:absolute;left:0;right:0;top:0;width:100%;height:calc(100% - 64px);transition:opacity .68s ease,height .68s ease}
+.zoom-frost{position:absolute;inset:0;z-index:3;pointer-events:none;opacity:0;--frost:0px;background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.05) 46%,rgba(255,255,255,.1));backdrop-filter:blur(var(--frost)) saturate(1.35);-webkit-backdrop-filter:blur(var(--frost)) saturate(1.35);transition:opacity .68s ease,--frost .68s ease}
+.zoom-ghost.glass{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.32);box-shadow:inset 0 1px 0 rgba(255,255,255,.34),0 28px 70px rgba(0,0,0,.22)}
+.zoom-ghost.glass svg{height:100%;opacity:.46}
+.zoom-ghost.glass .zoom-frost{opacity:1;--frost:14px}
+.zoom-ghost.glass .live-dot{opacity:.4}
+body.is-zooming{overflow:hidden}
+#running .card:hover .thumb{border-color:#3a3a3a}
+#running .card:hover .thumb-frame.live .thumb{border-color:transparent}
+#done .thumb-frame{position:relative}
+#done .card:hover .thumb-frame{padding:1.5px;margin:-1.5px;border-radius:16px;background:conic-gradient(from var(--sheen),#5ce1ff,#6d9cff,#c084fc,#ff6eb4,#ffd36a,#7dffb3,#5ce1ff);animation:sheen 2.8s linear infinite}
+#done .card:hover .thumb{border-color:transparent;box-shadow:0 0 18px #6d9cff66,0 0 32px #ff6eb444}
+.empty-note{margin:0;color:#6e6e6e;font-size:13px}
+.veil{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:20px;background:rgba(0,0,0,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.veil[hidden]{display:none}
+.confirm{position:relative;width:min(430px,100%);max-height:min(600px,calc(100dvh - 40px));overflow:auto;padding:28px;border:1px solid #393939;border-radius:20px;background:radial-gradient(circle at 100% 0%,#29202a 0%,#171719 42%,#111113 100%);box-shadow:0 30px 90px rgba(0,0,0,.7),0 0 45px rgba(172,93,153,.12);animation:confirm-in .24s cubic-bezier(.16,1,.3,1)}
+.confirm::before{content:"";position:absolute;inset:0 30px auto;height:1px;background:linear-gradient(90deg,transparent,#6d9cff,#c084fc,#ff6eb4,transparent);opacity:.8}
+@keyframes confirm-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.confirm .symbol{display:grid;place-items:center;width:42px;height:42px;margin-bottom:20px;border:1px solid #754146;border-radius:13px;background:#3a2025;color:#ff9a9f}
+.confirm .symbol svg{display:block;width:21px;height:21px}
+.confirm h2{margin:0;color:#f4f4f5;font-size:21px;font-weight:620;letter-spacing:-.02em;line-height:1.3}
+.confirm .note{margin:9px 0 0;color:#bcb8c0;font-size:14px;line-height:1.6}
+.confirm .selection{margin-top:23px;padding:14px 16px;border:1px solid #333136;border-radius:12px;background:#1d1b20}
+.confirm .selection-label{display:block;margin-bottom:7px;color:#a9a4ae;font-size:12px;line-height:1.3}
+.confirm .which{margin:0;max-height:5.4em;overflow:auto;overflow-wrap:anywhere;color:#f4f4f5;font-size:15px;font-weight:560;line-height:1.5}
+.confirm .error{margin:14px 0 0;color:#ffb4b8;font-size:13px;line-height:1.5}
+.confirm .error[hidden]{display:none}
+.confirm .actions{display:flex;justify-content:flex-end;gap:10px;margin-top:26px}
+.confirm button{min-height:42px;border:1px solid transparent;border-radius:10px;padding:9px 17px;font-size:14px;font-weight:570}
+.confirm .stay{border-color:#404044;background:#252528;color:#e2e1e4}
+.confirm .stay:hover,.confirm .stay:focus-visible{background:#343438}
+.confirm .yes{background:#a73542;color:#fff}
+.confirm .yes:hover,.confirm .yes:focus-visible{background:#bf414f}
+.confirm button:disabled,.confirm button[aria-disabled="true"]{opacity:.6;cursor:wait}
+.confirm button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+body.confirm-open{overflow:hidden}
+@media(prefers-reduced-motion:reduce){.confirm{animation:none}}
+@media(prefers-reduced-motion:reduce){.composer.launching,.composer.launching .launch,.launch-spark{animation:none}.launch-spark{display:none}}
+.group.is-empty h2{margin-bottom:8px}
+::selection{background:#333;color:#fff}
+@media(max-width:980px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:720px){
+  .page{width:calc(100% - 28px);padding-top:12px}
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 12px}
+}
+@media(max-width:460px){.grid{grid-template-columns:1fr}.confirm{padding:24px}.confirm .actions{display:grid;grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/" title="回到主页">PiResearch</a>
+</header>
+<main class="page">
+  <form class="ask" id="ask">
+    <div class="composer">
+      <textarea id="question" name="question" required maxlength="8000" aria-label="研究问题" placeholder="写下要查清的问题。可以包含范围、时间和必须回答的要点。"></textarea>
+      <button class="launch" type="submit" aria-label="开始研究">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path class="flame" d="M12 17.2c1.15 1.35 1.25 2.7 0 4.3-1.25-1.6-1.15-2.95 0-4.3z"/>
+          <path fill="currentColor" d="M12 1.6c2.15 2.7 3.15 5.5 3.15 8.7V15.2h-6.3V10.3c0-3.2 1-6 3.15-8.7z"/>
+          <path fill="currentColor" d="M8.85 10.6 5.4 15.2h3.45zm6.3 0 3.45 4.6h-3.45z"/>
+          <circle cx="12" cy="8.4" r="1.05" fill="#141414"/>
+        </svg>
+      </button>
+    </div>
+    <p class="ask-error" id="ask-error" hidden></p>
+  </form>
+  <section class="group" id="running-group">
+    <h2>调研中</h2>
+    <div class="grid" id="running"></div>
+  </section>
+  <section class="group" id="done-group">
+    <h2>已完成</h2>
+    <div class="grid" id="done"></div>
+  </section>
+</main>
+<div class="veil" id="forget-veil" hidden>
+  <div class="confirm" role="dialog" aria-modal="true" aria-labelledby="forget-title" aria-describedby="forget-note">
+    <span class="symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4.5 6.5h15M9 6.5V4.7c0-.7.6-1.2 1.3-1.2h3.4c.7 0 1.3.5 1.3 1.2v1.8m-8.9 0 .8 12.1c.1 1 .8 1.7 1.8 1.7h6.6c1 0 1.7-.7 1.8-1.7l.8-12.1M10 10v6.5m4-6.5v6.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    <h2 id="forget-title">确认删除这项研究？</h2>
+    <p class="note" id="forget-note"></p>
+    <div class="selection"><span class="selection-label">将删除</span><p class="which" id="forget-which"></p></div>
+    <p class="error" id="forget-error" role="alert" hidden></p>
+    <div class="actions">
+      <button type="button" class="stay" id="forget-stay">保留研究</button>
+      <button type="button" class="yes" id="forget-yes">永久删除</button>
+    </div>
+  </div>
+</div>
+<script>
+const STATUS = {running:"进行中", finished:"已完成", failed:"未完成"};
+const TONE = {origin:"#48d3e4", green:"#58d69a", cyan:"#48d3e4", violet:"#aa8cff", amber:"#f4c56a", blue:"#6d9cff", teal:"#7ddec8", pending:"#9eb0c2"};
+const EDGE = {parent:"#6d9cff", audit:"#aa8cff", support:"#58d69a", challenge:"#f4c56a", error:"#ff5d6c", fusion:"#aa8cff"};
+const NS = "http://www.w3.org/2000/svg";
+const cards = new Map();
+const watches = new Map();
+
+function when(value){
+  if(!value) return "";
+  const date = new Date(value);
+  if(Number.isNaN(date.getTime())) return "";
+  const pad = number => String(number).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function viewUrl(row){
+  return "/api/studies/" + String(row.href || "").replace(/^\/study\//, "") + "/view";
+}
+
+function paint(svg, view){
+  const nodes = (view && view.ok && view.nodes) || [];
+  svg.replaceChildren();
+  if(!nodes.length) return;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  nodes.forEach(node => {
+    const radius = node.radius || 48;
+    minX = Math.min(minX, node.x - radius);
+    minY = Math.min(minY, node.y - radius);
+    maxX = Math.max(maxX, node.x + radius);
+    maxY = Math.max(maxY, node.y + radius);
+  });
+  const pad = 36;
+  svg.setAttribute("viewBox", `${minX - pad} ${minY - pad} ${Math.max(1, maxX - minX) + pad * 2} ${Math.max(1, maxY - minY) + pad * 2}`);
+  const weight = Math.max(maxX - minX, maxY - minY, 1) / 150;
+  const byId = new Map(nodes.map(node => [node.id, node]));
+  (view.edges || []).forEach(edge => {
+    const from = byId.get(edge.from), to = byId.get(edge.to);
+    if(!from || !to) return;
+    const relation = edge.relation === "fusion" ? "audit" : edge.relation;
+    const line = document.createElementNS(NS, "line");
+    line.setAttribute("x1", from.x);
+    line.setAttribute("y1", from.y);
+    line.setAttribute("x2", to.x);
+    line.setAttribute("y2", to.y);
+    line.setAttribute("stroke", EDGE[relation] || "#6d9cff");
+    line.setAttribute("stroke-width", String(weight));
+    line.setAttribute("stroke-linecap", "round");
+    if(relation !== "parent" && relation !== "support") line.setAttribute("stroke-dasharray", `${weight * 1.4} ${weight * 2}`);
+    svg.appendChild(line);
+  });
+  nodes.forEach(node => {
+    const circle = document.createElementNS(NS, "circle");
+    circle.setAttribute("cx", node.x);
+    circle.setAttribute("cy", node.y);
+    circle.setAttribute("r", node.radius || 48);
+    circle.setAttribute("fill", TONE[node.tone] || "#6d9cff");
+    svg.appendChild(circle);
+  });
+}
+
+function signature(view){
+  if(!view || !view.ok) return "empty";
+  const nodes = (view.nodes || []).map(node => `${node.id}:${Math.round(node.x)}:${Math.round(node.y)}:${Math.round(node.radius || 0)}:${node.tone}`).join(",");
+  const edges = (view.edges || []).map(edge => `${edge.from}${edge.relation}${edge.to}`).join(",");
+  return nodes + "|" + edges;
+}
+
+async function loadThumb(id){
+  const card = cards.get(id);
+  const watch = watches.get(id);
+  if(!card || !watch) return;
+  try {
+    const view = await fetch(watch.url).then(response => response.json());
+    const next = signature(view);
+    if(next === watch.sig) return;
+    watch.sig = next;
+    paint(card.querySelector("svg"), view);
+  } catch (error) {
+    watch.sig = "error";
+  }
+}
+
+function watchThumb(row){
+  const live = row.status === "running";
+  const previous = watches.get(row.id);
+  if(previous && previous.live === live) return;
+  if(previous) clearInterval(previous.timer);
+  const state = {url: viewUrl(row), live, sig: "", timer: 0};
+  watches.set(row.id, state);
+  loadThumb(row.id);
+  if(live) state.timer = setInterval(() => loadThumb(row.id), 2000);
+}
+
+function caption(row){
+  const bits = [STATUS[row.status] || row.status];
+  if(!row.constellation && row.status !== "running") bits.push("没有星图");
+  const time = when(row.created_at);
+  if(time) bits.push(time);
+  return bits.join(" · ");
+}
+
+function buildCard(row){
+  const card = document.createElement("div");
+  card.className = "card";
+  const link = document.createElement("a");
+  link.className = "card-link";
+  link.href = row.href;
+  link.dataset.id = row.id;
+  const frame = document.createElement("div");
+  frame.className = row.status === "running" ? "thumb-frame live" : "thumb-frame";
+  const thumb = document.createElement("div");
+  thumb.className = "thumb";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("aria-hidden", "true");
+  thumb.appendChild(svg);
+  if(row.status === "running"){
+    const dot = document.createElement("i");
+    dot.className = "live-dot";
+    thumb.appendChild(dot);
+  }
+  const meta = document.createElement("small");
+  meta.textContent = caption(row);
+  const title = document.createElement("b");
+  title.textContent = row.title;
+  const overlay = document.createElement("div");
+  overlay.className = "caption";
+  overlay.append(meta, title);
+  thumb.appendChild(overlay);
+  const forget = document.createElement("button");
+  forget.type = "button";
+  forget.className = "forget";
+  forget.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.2 4.2h9.6M6.2 4.1V3.1a.8.8 0 0 1 .8-.8h2a.8.8 0 0 1 .8.8v1M4.4 4.2l.6 8.2a.8.8 0 0 0 .8.7h4.4a.8.8 0 0 0 .8-.7l.6-8.2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.6 6.4v4.2M9.4 6.4v4.2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>';
+  forget.setAttribute("aria-label", "删除这项研究");
+  forget.addEventListener("click", async event => {
+    event.preventDefault();
+    event.stopPropagation();
+    if(forget.disabled) return;
+    const deleted = await askForget(row, forget);
+    if(!deleted) return;
+    const watch = watches.get(row.id);
+    if(watch) clearInterval(watch.timer);
+    watches.delete(row.id);
+    cards.delete(row.id);
+    card.remove();
+    refresh();
+  });
+  frame.append(thumb);
+  link.append(frame);
+  card.append(link, forget);
+  return card;
+}
+
+function place(host, rows){
+  const group = host.parentElement;
+  host.replaceChildren();
+  if(!rows.length){
+    group.classList.add("is-empty");
+    const note = document.createElement("p");
+    note.className = "empty-note";
+    note.textContent = host.id === "running" ? "没有正在进行的研究。" : "还没有完成的研究。";
+    host.appendChild(note);
+    return;
+  }
+  group.classList.remove("is-empty");
+  rows.forEach(row => {
+    let card = cards.get(row.id);
+    if(!card){
+      card = buildCard(row);
+      cards.set(row.id, card);
+      watchThumb(row);
+    } else {
+      card.querySelector("b").textContent = row.title;
+      card.querySelector("small").textContent = caption(row);
+      card.querySelector(".thumb-frame").classList.toggle("live", row.status === "running");
+      const dot = card.querySelector(".live-dot");
+      if(row.status === "running" && !dot){
+        const mark = document.createElement("i");
+        mark.className = "live-dot";
+        card.querySelector(".thumb").appendChild(mark);
+      } else if(row.status !== "running" && dot){
+        dot.remove();
+      }
+      watchThumb(row);
+    }
+    host.appendChild(card);
+  });
+}
+
+function renderHistory(rows){
+  const alive = new Set(rows.map(row => row.id));
+  for(const id of [...cards.keys()]){
+    if(alive.has(id)) continue;
+    const watch = watches.get(id);
+    if(watch) clearInterval(watch.timer);
+    watches.delete(id);
+    cards.delete(id);
+  }
+  place(document.querySelector("#running"), rows.filter(row => row.status === "running"));
+  place(document.querySelector("#done"), rows.filter(row => row.status !== "running"));
+}
+
+async function refresh(){
+  try {
+    const rows = await fetch("/api/history").then(response => response.json());
+    renderHistory(rows);
+  } catch (error) {
+    document.querySelector("#running").replaceChildren();
+    const host = document.querySelector("#done");
+    host.replaceChildren();
+    const note = document.createElement("p");
+    note.className = "empty-note";
+    note.textContent = "历史没有读出来。刷新页面再试一次。";
+    host.appendChild(note);
+  }
+}
+
+document.querySelector("#question").addEventListener("keydown", event => {
+  if(event.key !== "Enter" || event.shiftKey || event.isComposing || event.keyCode === 229) return;
+  event.preventDefault();
+  if(event.repeat) return;
+  const form = event.currentTarget.form;
+  const button = form.querySelector(".launch");
+  if(!button.disabled) form.requestSubmit(button);
+});
+
+document.querySelector("#ask").addEventListener("submit", async event => {
+  event.preventDefault();
+  const question = document.querySelector("#question").value.trim();
+  const button = event.currentTarget.querySelector("button");
+  if(button.disabled) return;
+  const error = document.querySelector("#ask-error");
+  error.hidden = true;
+  button.disabled = true;
+  try {
+    const response = await fetch("/api/questions", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({question}),
+    });
+    const payload = await response.json();
+    if(!response.ok){
+      error.hidden = false;
+      error.textContent = payload.error || "没有提交成功。";
+      button.disabled = false;
+      return;
+    }
+    if(!window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+      await playLaunch();
+    }
+    location.href = payload.href;
+  } catch (err) {
+    error.hidden = false;
+    error.textContent = "没有提交成功。刷新后再试一次。";
+    button.disabled = false;
+  }
+});
+
+function playLaunch(){
+  const composer = document.querySelector(".composer");
+  const button = composer.querySelector(".launch");
+  const bounds = composer.getBoundingClientRect();
+  const target = button.getBoundingClientRect();
+  const endX = target.left + target.width / 2 - bounds.left;
+  const endY = target.top + target.height / 2 - bounds.top;
+  const starts = [
+    [0.04,0.06,"#5ce1ff"],[0.34,0.02,"#6d9cff"],[0.72,0.02,"#c084fc"],
+    [0.96,0.2,"#ff6eb4"],[0.03,0.74,"#ffd36a"],[0.43,0.98,"#7dffb3"],
+  ];
+  composer.classList.add("launching");
+  starts.forEach(([x,y,color],index) => {
+    const spark = document.createElement("i");
+    spark.className = "launch-spark";
+    spark.style.left = `${bounds.width * x}px`;
+    spark.style.top = `${bounds.height * y}px`;
+    spark.style.color = color;
+    spark.style.setProperty("--spark-color", color);
+    spark.style.setProperty("--dx", `${endX - bounds.width * x}px`);
+    spark.style.setProperty("--dy", `${endY - bounds.height * y}px`);
+    spark.style.animationDelay = `${index * 12}ms`;
+    composer.appendChild(spark);
+  });
+  return new Promise(resolve => setTimeout(resolve, 540));
+}
+
+let forgetAsk = null;
+function askForget(row, opener){
+  if(forgetAsk) return Promise.resolve(false);
+  const veil = document.querySelector("#forget-veil");
+  const stay = document.querySelector("#forget-stay");
+  const yes = document.querySelector("#forget-yes");
+  const error = document.querySelector("#forget-error");
+  document.querySelector("#forget-which").textContent = row.title || "这项研究";
+  document.querySelector("#forget-note").textContent = row.status === "running"
+    ? "研究仍在进行。删除会停止任务，并移除星图、报告和运行记录。此操作无法撤销。"
+    : "星图、报告和运行记录会一起移除。此操作无法撤销。";
+  error.hidden = true;
+  error.textContent = "";
+  yes.disabled = false;
+  yes.removeAttribute("aria-disabled");
+  stay.disabled = false;
+  yes.textContent = "永久删除";
+  veil.hidden = false;
+  document.body.classList.add("confirm-open");
+  stay.focus();
+  return new Promise(resolve => {
+    let busy = false;
+    function finish(ok){
+      if(!forgetAsk) return;
+      forgetAsk = null;
+      veil.hidden = true;
+      document.body.classList.remove("confirm-open");
+      document.removeEventListener("keydown", onKey);
+      stay.onclick = yes.onclick = veil.onclick = null;
+      if(opener && opener.isConnected) opener.focus();
+      resolve(ok);
+    }
+    function onKey(event){
+      if(event.key === "Escape"){
+        event.preventDefault();
+        if(!busy) finish(false);
+        return;
+      }
+      if(event.key !== "Tab") return;
+      if(busy){
+        event.preventDefault();
+        yes.focus();
+        return;
+      }
+      const nodes = [stay, yes];
+      const index = nodes.indexOf(document.activeElement);
+      event.preventDefault();
+      nodes[(index + (event.shiftKey ? -1 : 1) + 2) % 2].focus();
+    }
+    forgetAsk = finish;
+    document.addEventListener("keydown", onKey);
+    stay.onclick = () => finish(false);
+    yes.onclick = async () => {
+      if(busy) return;
+      busy = true;
+      yes.setAttribute("aria-disabled", "true");
+      stay.disabled = true;
+      yes.textContent = "正在删除…";
+      error.hidden = true;
+      try {
+        const response = await fetch("/api/studies/" + encodeURI(row.id), {method: "DELETE"});
+        if(!response.ok){
+          const payload = await response.json().catch(() => ({}));
+          throw new Error(payload.error || "删除失败，请重试。");
+        }
+        finish(true);
+      } catch (reason) {
+        error.textContent = reason instanceof Error && reason.message !== "Failed to fetch"
+          ? reason.message : "连接失败，研究尚未删除。请重试。";
+        error.hidden = false;
+        busy = false;
+        yes.removeAttribute("aria-disabled");
+        stay.disabled = false;
+        yes.textContent = "永久删除";
+        stay.focus();
+      }
+    };
+    veil.onclick = event => { if(event.target === veil && !busy) finish(false); };
+  });
+}
+
+refresh();
+setInterval(refresh, 3000);
+
+let zooming = false;
+document.addEventListener("click", event => {
+  if(event.target.closest(".forget")) return;
+  const link = event.target.closest("a.card-link");
+  if(!link || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+  if(window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const thumb = link.querySelector(".thumb");
+  if(!thumb) return;
+  if(zooming){
+    event.preventDefault();
+    return;
+  }
+  event.preventDefault();
+  zooming = true;
+  document.body.classList.add("is-zooming");
+  const rect = thumb.getBoundingClientRect();
+  const shade = document.createElement("div");
+  shade.className = "zoom-shade";
+  const ghost = thumb.cloneNode(true);
+  ghost.querySelector(".caption")?.remove();
+  ghost.className = "thumb zoom-ghost";
+  ghost.style.left = `${rect.left}px`;
+  ghost.style.top = `${rect.top}px`;
+  ghost.style.width = `${rect.width}px`;
+  ghost.style.height = `${rect.height}px`;
+  ghost.style.borderRadius = "14px";
+  const frost = document.createElement("div");
+  frost.className = "zoom-frost";
+  ghost.append(frost);
+  document.body.append(shade, ghost);
+  thumb.style.visibility = "hidden";
+  const scale = Math.max(window.innerWidth / rect.width, window.innerHeight / rect.height) * 0.832;
+  const dx = window.innerWidth / 2 - (rect.left + rect.width / 2);
+  const dy = window.innerHeight / 2 - (rect.top + rect.height / 2);
+  requestAnimationFrame(() => {
+    shade.classList.add("on");
+    ghost.classList.add("glass");
+    ghost.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+    ghost.style.borderRadius = "0px";
+  });
+  let gone = false;
+  const go = () => {
+    if(gone) return;
+    gone = true;
+    try{ sessionStorage.setItem("piresearch-zoom", "1"); }catch(err){}
+    location.href = link.href;
+  };
+  ghost.addEventListener("transitionend", transition => {
+    if(transition.propertyName === "transform") go();
+  });
+  setTimeout(go, 820);
+});
+</script>
+</body>
+</html>
